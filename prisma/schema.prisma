@@ -1,0 +1,310 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["metrics", "views"]
+  binaryTargets   = ["native", "rhel-openssl-1.1.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                        Int                  @id @default(autoincrement())
+  ldapId                    Int?
+  ldapDn                    String?
+  typeId                    Int?
+  attempt                   Int                  @default(0)
+  username                  String               @unique
+  fullname                  String?
+  jsonLdap                  Json?
+  email                     String?
+  createdAt                 DateTime             @default(now())
+  createdBy                 Int?
+  updatedAt                 DateTime?            @updatedAt
+  updatedBy                 Int?
+  recordStatus              String               @default("A")
+  groupId                   Int?
+  AccessCreate              Access[]             @relation("createdUser")
+  AccessUpdate              Access[]             @relation("updatedUser")
+  FormsCreate               Form[]               @relation("createdUser")
+  FormsUpdate               Form[]               @relation("updatedUser")
+  FormsGroupCreate          FormGroup[]          @relation("createdUser")
+  FormsGroupUpdate          FormGroup[]          @relation("updatedUser")
+  GroupsCreate              Group[]              @relation("createdUser")
+  GroupsUpdate              Group[]              @relation("updatedUser")
+  LdapsCreate               Ldap[]               @relation("createdUser")
+  LdapsUpdate               Ldap[]               @relation("updatedUser")
+  RolesCreate               Role[]               @relation("createdUser")
+  RolesUpdate               Role[]               @relation("updatedUser")
+  Roles                     Role[]
+  SessionsCreate            Session[]            @relation("createdUser")
+  SessionsUpdate            Session[]            @relation("updatedUser")
+  Sessions                  Session[]
+  TypesCreate               Type[]               @relation("createdUser")
+  TypesUpdate               Type[]               @relation("updatedUser")
+  createdUser               User?                @relation("createdUser", fields: [createdBy], references: [id])
+  UserCreate                User[]               @relation("createdUser")
+  group                     Group?               @relation(fields: [groupId], references: [id])
+  ldap                      Ldap?                @relation(fields: [ldapId], references: [id])
+  type                      Type?                @relation(fields: [typeId], references: [id])
+  updatedUser               User?                @relation("updatedUser", fields: [updatedBy], references: [id])
+  UsersUpdate               User[]               @relation("updatedUser")
+  UserRevChecker            UserRev[]            @relation("checkedUser")
+  UserRevMaker              UserRev[]            @relation("makedUser")
+  UserRev                   UserRev[]
+  WizardsCreate             Wizard[]             @relation("createdUser")
+  WizardsUpdate             Wizard[]             @relation("updatedUser")
+}
+
+model UserRev {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  ldapId       Int?
+  ldapDn       String?
+  groupId      Int?
+  typeId       Int?
+  attempt      Int       @default(0)
+  username     String
+  fullname     String?
+  jsonLdap     Json?
+  email        String?
+  createdAt    DateTime  @default(now())
+  createdBy    Int?
+  updatedAt    DateTime? @updatedAt
+  updatedBy    Int?
+  recordStatus String    @default("A")
+  actionCode   String?
+  actionNote   String?
+  checkedAt    DateTime?
+  checkedBy    Int?
+  makedAt      DateTime  @default(now())
+  makedBy      Int?
+  rowAction    String    @default("C")
+  sysAction    String
+  checkedUser  User?     @relation("checkedUser", fields: [checkedBy], references: [id])
+  group        Group?    @relation(fields: [groupId], references: [id])
+  ldap         Ldap?     @relation(fields: [ldapId], references: [id])
+  makedUser    User?     @relation("makedUser", fields: [makedBy], references: [id])
+  type         Type?     @relation(fields: [typeId], references: [id])
+  user         User      @relation(fields: [userId], references: [id])
+}
+
+model Wizard {
+  id           Int       @id @default(autoincrement())
+  token        String    @unique
+  expiresIn    DateTime
+  json         Json?
+  hasExecuted  Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  createdBy    Int
+  updatedAt    DateTime? @updatedAt
+  updatedBy    Int?
+  recordStatus String    @default("A")
+  createdUser  User      @relation("createdUser", fields: [createdBy], references: [id])
+  updatedUser  User?     @relation("updatedUser", fields: [updatedBy], references: [id])
+}
+
+model Ldap {
+  id           Int       @id @default(autoincrement())
+  url          String
+  filter       String
+  attrEmail    String
+  attrFullname String
+  dc           String
+  ouLogin      String
+  ouSearch     String
+  username     String
+  password     String
+  note         String?
+  usePlain     Boolean   @default(true)
+  isDefault    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  createdBy    Int
+  updatedAt    DateTime? @updatedAt
+  updatedBy    Int?
+  recordStatus String    @default("A")
+  createdUser  User      @relation("createdUser", fields: [createdBy], references: [id])
+  updatedUser  User?     @relation("updatedUser", fields: [updatedBy], references: [id])
+  User         User[]
+  UserRev      UserRev[]
+}
+
+model Type {
+  id           Int       @id @default(autoincrement())
+  groupId      Int?
+  name         String
+  /// useful for type as checker or maker flag
+  flag         String?
+  /// useful for type as checker or maker flag
+  mode         String?
+  note         String?
+  createdAt    DateTime  @default(now())
+  createdBy    Int
+  updatedAt    DateTime? @updatedAt
+  updatedBy    Int?
+  recordStatus String    @default("A")
+  Access       Access[]
+  createdUser  User      @relation("createdUser", fields: [createdBy], references: [id])
+  group        Group?    @relation(fields: [groupId], references: [id])
+  updatedUser  User?     @relation("updatedUser", fields: [updatedBy], references: [id])
+  Users        User[]
+  UserRev      UserRev[]
+}
+
+model Group {
+  id                   Int              @id @default(autoincrement())
+  name                 String
+  note                 String?
+  createdAt            DateTime         @default(now())
+  createdBy            Int
+  updatedAt            DateTime?        @updatedAt
+  updatedBy            Int?
+  recordStatus         String           @default("A")
+  FormsGroup           FormGroup[]
+  createdUser          User             @relation("createdUser", fields: [createdBy], references: [id])
+  updatedUser          User?            @relation("updatedUser", fields: [updatedBy], references: [id])
+  Types                Type[]
+  User                 User[]
+  UserRev              UserRev[]
+}
+
+model Access {
+  id           Int       @id @default(autoincrement())
+  formId       Int
+  typeId       Int
+  roleAction   String
+  roleValue    Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  createdBy    Int
+  updatedAt    DateTime? @updatedAt
+  updatedBy    Int?
+  recordStatus String    @default("A")
+  createdUser  User      @relation("createdUser", fields: [createdBy], references: [id])
+  form         Form      @relation(fields: [formId], references: [id])
+  type         Type      @relation(fields: [typeId], references: [id])
+  updatedUser  User?     @relation("updatedUser", fields: [updatedBy], references: [id])
+}
+
+model Role {
+  id           Int       @id @default(autoincrement())
+  formId       Int
+  userId       Int
+  roleAction   String
+  roleValue    Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  createdBy    Int
+  updatedAt    DateTime? @updatedAt
+  updatedBy    Int?
+  recordStatus String    @default("A")
+  createdUser  User      @relation("createdUser", fields: [createdBy], references: [id])
+  form         Form      @relation(fields: [formId], references: [id])
+  updatedUser  User?     @relation("updatedUser", fields: [updatedBy], references: [id])
+  user         User      @relation(fields: [userId], references: [id])
+}
+
+model Form {
+  id           Int         @id @default(autoincrement())
+  name         String
+  url          String?
+  icon         String?     @default("mdi-snow")
+  color        String?     @default("white")
+  sort         Int         @default(0)
+  parentId     Int?
+  isReadOnly   Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  createdBy    Int
+  updatedAt    DateTime?   @updatedAt
+  updatedBy    Int?
+  recordStatus String      @default("A")
+  Access       Access[]
+  createdUser  User        @relation("createdUser", fields: [createdBy], references: [id])
+  parent       Form?       @relation("children", fields: [parentId], references: [id])
+  childs       Form[]      @relation("children")
+  updatedUser  User?       @relation("updatedUser", fields: [updatedBy], references: [id])
+  FormsGroup   FormGroup[]
+  Roles        Role[]
+}
+
+model FormGroup {
+  id           Int       @id @default(autoincrement())
+  formId       Int
+  groupId      Int
+  note         String?
+  createdAt    DateTime  @default(now())
+  createdBy    Int
+  updatedAt    DateTime? @updatedAt
+  updatedBy    Int?
+  recordStatus String    @default("A")
+  createdUser  User      @relation("createdUser", fields: [createdBy], references: [id])
+  form         Form      @relation(fields: [formId], references: [id])
+  group        Group     @relation(fields: [groupId], references: [id])
+  updatedUser  User?     @relation("updatedUser", fields: [updatedBy], references: [id])
+}
+
+model Session {
+  id           Int       @id @default(autoincrement())
+  token        String    @unique
+  userId       Int
+  type         String
+  createdAt    DateTime  @default(now())
+  createdBy    Int
+  updatedAt    DateTime? @updatedAt
+  updatedBy    Int?
+  recordStatus String    @default("A")
+  createdUser  User      @relation("createdUser", fields: [createdBy], references: [id])
+  updatedUser  User?     @relation("updatedUser", fields: [updatedBy], references: [id])
+  user         User      @relation(fields: [userId], references: [id])
+
+  @@index([userId], name: "userIdIndex")
+  @@index([recordStatus], name: "recordStatusIndex")
+}
+
+/// The underlying view does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+view userView {
+  id           Int       @unique
+  revId        Int?
+  groupId      Int?
+  typeId       Int?
+  username     String?
+  fullname     String?
+  email        String?
+  status       String?
+  recordStatus String?
+  makedBy      Int?
+  checkedBy    Int?
+  makedAt      DateTime?
+  checkedAt    DateTime?
+  makedName    String?
+  checkedName  String?
+  typeName     String?
+  groupName    String?
+  actionCode   String?
+  actionNote   String?
+  rowAction    String?
+  checkedEmail String?
+  makedEmail   String?
+}
+
+/// The underlying view does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+view groupAccessView {
+  id              Int       @unique
+  revId           Int?
+  groupId         Int?
+  groupPId        Int?
+  groupName       String?
+  groupParentName String?
+  status          String?
+  recordStatus    String?
+  makedBy         Int?
+  checkedBy       Int?
+  makedAt         DateTime?
+  checkedAt       DateTime?
+  makedName       String?
+  checkedName     String?
+  actionCode      String?
+  actionNote      String?
+  rowAction       String?
+  checkedEmail    String?
+  makedEmail      String?
+}
