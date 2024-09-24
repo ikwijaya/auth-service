@@ -64,14 +64,7 @@ interface IUser {
   id: number;
   username: string;
   createdAt: Date;
-  makedBy?: number;
-  makedAt: Date;
-  rowAction: string;
-  sysAction: string;
-  actionCode?: string;
-  actionNote: string;
   groupId?: number;
-  checkedAt: Date;
 }
 
 /// DATA
@@ -80,23 +73,11 @@ const user: IUser[] = [
     id: 0,
     username: 'app.system',
     createdAt: new Date(),
-    makedAt: new Date(),
-    rowAction: 'C',
-    sysAction: 'submit',
-    actionNote: 'added by application.seed',
-    actionCode: 'A',
-    checkedAt: new Date(),
   },
   {
     id: 1,
     username: 'chb0001',
     createdAt: new Date(),
-    makedAt: new Date(),
-    rowAction: 'C',
-    sysAction: 'submit',
-    actionNote: 'added by application.seed',
-    actionCode: 'A',
-    checkedAt: new Date(),
   },
 ];
 
@@ -216,7 +197,75 @@ const form: IForm[] = [
 
 // saving data
 const prisma = new PrismaClient();
-async function seed(): Promise<void> {}
+async function seed(): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    await prisma.user.createMany({ data: user });
+    await tx.ldap.create({ data: ldap });
+    await tx.group.create({ data: { ...group } });
+    await tx.type.createMany({ data: privilege });
+    await tx.form.createMany({ data: form });
+  });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({ data: { typeId: 1, ldapId: 1 }, where: { id: 1 } })
+    const _user = await tx.user
+      .findFirst({ where: { id: 1 } })
+      .catch(e => { throw e });
+
+    if (_user)
+      await tx.userRev.create({
+        data: {
+          userId: _user.id,
+          typeId: 1,
+          ldapId: 1,
+          username: _user.username,
+          createdAt: new Date(),
+          makedAt: new Date(),
+          rowAction: 'C',
+          sysAction: 'submit',
+          actionNote: 'added by application.seed',
+          actionCode: 'A',
+          checkedAt: new Date()
+        }
+      }).catch(e => { throw e })
+
+    /// get all form then build access
+    const forms = await tx.form
+      .findMany({
+        orderBy: [{ sort: 'asc' }],
+        select: {
+          id: true,
+          name: true,
+          isReadOnly: true,
+          parent: {
+            select: {
+              name: true,
+            },
+          },
+        },
+        where: {
+          recordStatus: 'A',
+        },
+      })
+      .catch((e) => {
+        throw e;
+      });
+
+    const matrix: IMatrixMenu[] = forms.map((e) => ({
+      id: e.id,
+      name: e.parent ? `${e.parent.name} > ${e.name}` : e.name,
+      isReadOnly: e.isReadOnly,
+      roles: [
+        { roleAction: 'R', roleValue: true, roleName: 'READ' },
+      ] as IRole[],
+    }));
+
+    const accessItems = await buildMatrix(matrix, 1, 1).catch(e => { throw e })
+    await tx.access.createMany({ data: accessItems }).catch((e) => {
+      throw e;
+    });
+  })
+}
 
 async function main(): Promise<void> {
   let isError: boolean = false;
@@ -280,7 +329,6 @@ async function buildMatrix(
 
 const env = process.env.NODE_ENV;
 const dbUrl = process.env.DATABASE_URL;
-// void main();
 if (env === 'development' && dbUrl && /[a-z]+@localhost:[a-z]+/i.test(dbUrl))
   void main();
 else logger.info(`only development env can do a seed process`);
