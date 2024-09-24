@@ -81,7 +81,7 @@ model UserRev {
   makedAt      DateTime  @default(now())
   makedBy      Int?
   rowAction    String    @default("C")
-  sysAction    String
+  sysAction    String    @default("submit")
   checkedUser  User?     @relation("checkedUser", fields: [checkedBy], references: [id])
   group        Group?    @relation(fields: [groupId], references: [id])
   ldap         Ldap?     @relation(fields: [ldapId], references: [id])

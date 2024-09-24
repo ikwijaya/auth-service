@@ -6,7 +6,6 @@ import {
   MaxLength,
   MinLength,
   ValidateNested,
-  maxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { IMatrixMenu } from './access.dto';

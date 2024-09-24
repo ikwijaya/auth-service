@@ -329,6 +329,8 @@ async function buildMatrix(
 
 const env = process.env.NODE_ENV;
 const dbUrl = process.env.DATABASE_URL;
+
+// void main()
 if (env === 'development' && dbUrl && /[a-z]+@localhost:[a-z]+/i.test(dbUrl))
   void main();
 else logger.info(`only development env can do a seed process`);
