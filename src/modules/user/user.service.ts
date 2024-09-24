@@ -23,7 +23,10 @@ export default class UserService extends Service {
     matrix: IUserMatrix,
     params: IPagination,
     qs?: IQuerySearch
-  ): Promise<unknown> {}
+  ): Promise<void> {
+
+
+  }
 
   /**
    *

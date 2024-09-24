@@ -15,6 +15,7 @@ export interface IPub {
  */
 export async function rabbitPub(value: Object, topic: string) {
   let connection: any;
+
   try {
     const content: string = JSON.stringify(value);
     let i: number = 0;
@@ -23,12 +24,12 @@ export async function rabbitPub(value: Object, topic: string) {
     async function run(msg?: any) {
       logger.info(msg);
       await amq
-        .connect(CSTRING + '?heartbeat=60')
+        .connect(CSTRING)
         .then(async (_con: amq.Connection) => {
           _con.on('error', function (err) {
             setTimeout(async (err) => {
               await run(err);
-            }, 10000);
+            }, 500);
           });
           const channel: amq.Channel = await _con
             .createConfirmChannel()
@@ -54,7 +55,7 @@ export async function rabbitPub(value: Object, topic: string) {
           if (i < 5)
             setTimeout(async () => {
               await run(e);
-            }, 10000);
+            }, 500);
           else logger.error(`force close, ${i}x attempt`);
         });
     }
@@ -121,9 +122,9 @@ export async function rabbitSub(topic: string, callback: Function) {
           const attempt: number = 5;
           if (attempt && attempt !== 0) {
             if (i < attempt)
-              setTimeout(async () => await run(e), 10000);
+              setTimeout(async () => await run(e), 500);
             else logger.error(`force close by (${attempt}) attempt!`);
-          } else setTimeout(async () => await run(e), 10000);
+          } else setTimeout(async () => await run(e), 500);
         });
     }
 

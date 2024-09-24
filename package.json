@@ -23,6 +23,7 @@
     "check:types": "tsc --noEmit",
     "commit": "git-cz",
     "test": "jest",
+    "test:integration": "jest -c jest.config.integration.ts",
     "env:copy": "cp /deployments/config/application.env .env"
   },
   "prisma": {
@@ -44,7 +45,6 @@
   "license": "MIT",
   "dependencies": {
     "@google-cloud/logging-winston": "^6.0.0",
-    "@google-cloud/pubsub": "^1.1.5",
     "@google-cloud/storage": "^7.7.0",
     "@prisma/client": "^5.13.0",
     "@types/amqplib": "^0.10.5",

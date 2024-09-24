@@ -1,5 +1,4 @@
 import { rabbitPub, rabbitSub } from '@/lib/rabbit'
-import { gPub, gSub } from '@/lib/gpubsub'
 import { IApiError } from '@/lib/errors'
 
 export default class LogQueueService {
@@ -13,7 +12,6 @@ export default class LogQueueService {
         const msgBrokerType: string = process.env.MSG_BROKER_TYPE
 
         if (msgBrokerType === 'rmq') await rabbitPub(value, topic).catch(e => { throw e })
-        else if(msgBrokerType === 'pubsub') await gPub(value, topic).catch(e => { throw e })
         else throw { rawErrors: ["Queue type is not supported"], statusCode: 401 } as IApiError
     }
 }
