@@ -81,24 +81,15 @@ SELECT
   ) AS "groupName",
   COALESCE(
     iw."actionCode",
-    COALESCE(
-      ia."actionCode",
-      COALESCE(ir."actionCode", us."actionCode")
-    )
+    COALESCE(ia."actionCode", ir."actionCode")
   ) AS "actionCode",
   COALESCE(
     iw."actionNote",
-    COALESCE(
-      ia."actionNote",
-      COALESCE(ir."actionNote", us."actionNote")
-    )
+    COALESCE(ia."actionNote", ir."actionNote")
   ) AS "actionNote",
   COALESCE(
     iw."rowAction",
-    COALESCE(
-      ia."rowAction",
-      COALESCE(ir."rowAction", us."rowAction")
-    )
+    COALESCE(ia."rowAction", ir."rowAction")
   ) AS "rowAction",
   COALESCE(
     iw."checkedEmail",
@@ -118,7 +109,7 @@ FROM
   (
     (
       (
-        public."User" us
+        "User" us
         LEFT JOIN (
           SELECT
             a.id,
@@ -149,14 +140,14 @@ FROM
                 (
                   (
                     (
-                      public."UserRev" a
-                      LEFT JOIN public."User" um ON ((a."makedBy" = um.id))
+                      "UserRev" a
+                      LEFT JOIN "User" um ON ((a."makedBy" = um.id))
                     )
-                    LEFT JOIN public."User" uc ON ((a."checkedBy" = uc.id))
+                    LEFT JOIN "User" uc ON ((a."checkedBy" = uc.id))
                   )
-                  LEFT JOIN public."Group" g ON ((a."groupId" = g.id))
+                  LEFT JOIN "Group" g ON ((a."groupId" = g.id))
                 )
-                LEFT JOIN public."Type" t ON ((a."typeId" = t.id))
+                LEFT JOIN "Type" t ON ((a."typeId" = t.id))
               )
               JOIN (
                 SELECT
@@ -164,7 +155,7 @@ FROM
                   max(ur."checkedAt") AS "checkedAt",
                   max(ur."makedAt") AS "makedAt"
                 FROM
-                  public."UserRev" ur
+                  "UserRev" ur
                 WHERE
                   (ur."actionCode" = 'A' :: text)
                 GROUP BY
@@ -209,14 +200,14 @@ FROM
               (
                 (
                   (
-                    public."UserRev" a
-                    LEFT JOIN public."User" um ON ((a."makedBy" = um.id))
+                    "UserRev" a
+                    LEFT JOIN "User" um ON ((a."makedBy" = um.id))
                   )
-                  LEFT JOIN public."User" uc ON ((a."checkedBy" = uc.id))
+                  LEFT JOIN "User" uc ON ((a."checkedBy" = uc.id))
                 )
-                LEFT JOIN public."Group" g ON ((a."groupId" = g.id))
+                LEFT JOIN "Group" g ON ((a."groupId" = g.id))
               )
-              LEFT JOIN public."Type" t ON ((a."typeId" = t.id))
+              LEFT JOIN "Type" t ON ((a."typeId" = t.id))
             )
             JOIN (
               SELECT
@@ -224,7 +215,7 @@ FROM
                 max(ur."checkedAt") AS "checkedAt",
                 max(ur."makedAt") AS "makedAt"
               FROM
-                public."UserRev" ur
+                "UserRev" ur
               WHERE
                 (ur."actionCode" = 'R' :: text)
               GROUP BY
@@ -269,21 +260,21 @@ FROM
             (
               (
                 (
-                  public."UserRev" a
-                  LEFT JOIN public."User" um ON ((a."makedBy" = um.id))
+                  "UserRev" a
+                  LEFT JOIN "User" um ON ((a."makedBy" = um.id))
                 )
-                LEFT JOIN public."User" uc ON ((a."checkedBy" = uc.id))
+                LEFT JOIN "User" uc ON ((a."checkedBy" = uc.id))
               )
-              LEFT JOIN public."Group" g ON ((a."groupId" = g.id))
+              LEFT JOIN "Group" g ON ((a."groupId" = g.id))
             )
-            LEFT JOIN public."Type" t ON ((a."typeId" = t.id))
+            LEFT JOIN "Type" t ON ((a."typeId" = t.id))
           )
           JOIN (
             SELECT
               ur."userId",
               max(ur."makedAt") AS "makedAt"
             FROM
-              public."UserRev" ur
+              "UserRev" ur
             WHERE
               (ur."actionCode" = 'W' :: text)
             GROUP BY
