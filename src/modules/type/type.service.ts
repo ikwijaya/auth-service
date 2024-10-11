@@ -18,6 +18,7 @@ import {
   DEFAULT_SUCCESS,
   DEFAULT_UPDATED
 } from '@/utils/constants';
+import { ILogQMes } from '@/dto/queue.dto';
 
 export default class TypeService extends Service {
   private readonly AccessService = new accessService();
@@ -100,8 +101,8 @@ export default class TypeService extends Service {
     return {
       items: items.map((e) => ({
         ...e,
-        is_update: matrix.is_read && e.recordStatus === 'A',
-        is_delete: matrix.is_read && e.recordStatus === 'A',
+        is_update: matrix.is_update && e.recordStatus === 'A',
+        is_delete: matrix.is_delete && e.recordStatus === 'A',
       })),
       matrix,
       pagination: params,
@@ -367,6 +368,19 @@ export default class TypeService extends Service {
           throw e;
         });
 
+        const payload: ILogQMes = {
+          serviceName: TypeService.name,
+          action: 'create',
+          json: { obj, matrix },
+          message: `Peran ${obj.name} is created`,
+          createdAt: new Date(),
+          createdBy: auth.userId,
+          createdUsername: auth.username,
+          roleId: auth.typeId,
+          roleName: auth.type?.name
+        }
+
+        this.addLog([{ flag: `${TypeService.name}`, payload }])
         return {
           messages: ['Peran', DEFAULT_SUCCESS],
           payload: type,
@@ -442,14 +456,14 @@ export default class TypeService extends Service {
             throw e;
           });
 
-        /// / get all access foreign with typeId == id
+        /// get all access foreign with typeId == id
         const accessIds = await tx.access
           .findMany({ select: { id: true }, where: { typeId: id } })
           .catch((e) => {
             throw e;
           });
 
-        /// / then delete-all data before
+        /// then delete-all data before
         await tx.access
           .deleteMany({
             where: {
@@ -461,7 +475,7 @@ export default class TypeService extends Service {
             throw e;
           });
 
-        /// / then inject with new data
+        /// then inject with new data
         const matrix = await this.AccessService.buildMatrix(
           obj.forms,
           id,
@@ -471,6 +485,19 @@ export default class TypeService extends Service {
           throw e;
         });
 
+        const payload: ILogQMes = {
+          serviceName: TypeService.name,
+          action: 'update',
+          json: { matrix, before: exist, after: obj },
+          message: `Peran ${obj.name} is updated`,
+          createdAt: new Date(),
+          createdBy: auth.userId,
+          createdUsername: auth.username,
+          roleId: auth.typeId,
+          roleName: auth.type?.name
+        }
+
+        this.addLog([{ flag: `${TypeService.name}`, payload }])
         return {
           messages: ['Peran', DEFAULT_UPDATED],
         } as IMessages;
@@ -528,6 +555,19 @@ export default class TypeService extends Service {
           throw e;
         });
 
+        const payload: ILogQMes = {
+          serviceName: TypeService.name,
+          action: 'delete',
+          json: { before: exist, id },
+          message: `Peran ${exist.name} is deleted`,
+          createdAt: new Date(),
+          createdBy: auth.userId,
+          createdUsername: auth.username,
+          roleId: auth.typeId,
+          roleName: auth.type?.name
+        }
+
+        this.addLog([{ flag: `${TypeService.name}`, payload }])
         return {
           messages: ['Peran', DEFAULT_DELETED],
         } as IMessages;
