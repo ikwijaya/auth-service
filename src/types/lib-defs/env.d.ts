@@ -4,7 +4,6 @@ import {
   type IUserMatrix,
 } from '@/dto/common.dto';
 import { type Environments } from '@/enums/environment.enum';
-import { type MSG_BROKER_TYPE } from '@/enums/message-broker.enum'
 
 declare global {
   namespace NodeJS {
@@ -22,17 +21,17 @@ declare global {
       JWT_SECRET: string;
       API_KEY: string;
 
-      MSG_BROKER_TYPE: MSG_BROKER_TYPE;
-      MSG_BROKER_URL: string;
-      TOPIC_NOTIFY: string;
-      TOPIC_LOGGY: string;
-
       GOOGLE_PROJECT_ID: string;
       GOOGLE_LOG_BUCKET: string;
 
       DATABASE_URL: string;
       NUM_PROXY: string;
       UNREGISTER_PATH: string | undefined;
+
+      REDIS_HOST: string;
+      REDIS_PORT: string;
+      REDIS_USERNAME: string;
+      REDIS_PASSWORD: string;
     }
   }
 }

@@ -8,7 +8,6 @@ import { type IApiError } from '@/lib/errors';
 import { type LoginResDto, type LoginDto } from '@/dto/auth.dto';
 import { type IJwtVerify, type IMessages } from '@/dto/common.dto';
 import { aesCbcDecrypt, aesCbcEncrypt } from '@/lib/security';
-import LogQueue from '@/modules/log-queue/log-queue.service'
 import Service from '@/lib/service';
 import {
   AUTH_FAIL_01,
@@ -18,6 +17,7 @@ import {
 } from '@/utils/constants';
 import environment from '@/lib/environment';
 import logger from '@/lib/logger';
+import { ILogQMes } from '@/dto/queue.dto';
 const maxAttempt: number = 5;
 
 interface ILdapAttr {
@@ -28,8 +28,6 @@ interface ILdapAttr {
 }
 
 export default class AuthService extends Service {
-  private readonly _logQueue = new LogQueue();
-
 
   /**
    *
@@ -55,6 +53,7 @@ export default class AuthService extends Service {
           ldap: true,
           id: true,
           userId: true,
+          typeId: true,
           username: true,
           fullname: true,
           email: true,
@@ -109,23 +108,15 @@ export default class AuthService extends Service {
      * yg dihasilkan dari query user
      */
     if (!user) {
-      const tokenForLog = Jwt.sign(
-        {
-          id: 0,
-          username: 'system',
-          email: 'system',
-          fullname: 'system',
-          type: 'app-cms',
-          privilegeName: 'system',
-        } as IJwtVerify,
-        process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
-        { expiresIn: process.env.JWT_EXPIRE }
-      );
+      const payload: ILogQMes = {
+        serviceName: AuthService.name,
+        action: 'bad-login',
+        json: { username: obj.username, groupId: obj.groupId },
+        message: `${obj.username} failed login`,
+        createdAt: new Date()
+      }
 
-      /// send log by msg-broker
-      // <-- here -->
-      // await this.msgBroker.publisher()
-
+      this.addLog([{ flag: `${AuthService.name}`, payload }])
       throw { rawErrors: [LOGIN_FAIL_00] } as IApiError;
     } else if (!user.ldap) throw { rawErrors: [LOGIN_FAIL_00] } as IApiError;
     else {
@@ -134,8 +125,8 @@ export default class AuthService extends Service {
           throw e;
         }
       );
-      if (!verifyDN.valid) throw { rawErrors: [AUTH_FAIL_01] } as IApiError;
 
+      if (!verifyDN.valid) throw { rawErrors: [AUTH_FAIL_01] } as IApiError;
       const dn =
         verifyDN.entries.length > 0 ? verifyDN.entries[0].dn : undefined;
       const options: AuthenticationOptions | undefined = {
@@ -151,11 +142,11 @@ export default class AuthService extends Service {
       const ldapPassword: string = user.ldap.usePlain
         ? user.ldap.password
         : await aesCbcDecrypt(
-            user.ldap.password,
-            process.env.ENCRYPTION_HASH
-          ).catch((e) => {
-            throw e;
-          });
+          user.ldap.password,
+          process.env.ENCRYPTION_HASH
+        ).catch((e) => {
+          throw e;
+        });
 
       /**
        * in production this binding
@@ -166,33 +157,12 @@ export default class AuthService extends Service {
         options.adminPassword = ldapPassword;
       }
 
-      const tokenForLog = Jwt.sign(
-        {
-          id: user.userId,
-          username: obj.username,
-          email: user.email,
-          fullname: user.fullname,
-          groupId: obj.groupId,
-          type: 'app-cms',
-          privilegeName: user.type?.name,
-        } as IJwtVerify,
-        process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
-        { expiresIn: process.env.JWT_EXPIRE }
-      );
-
       /**
        * handle ldap
        */
       const valid: ILdapAttr | null | undefined = await authenticate(
         options
       ).catch(async (e) => {
-        const objEnc = await aesCbcEncrypt(
-          JSON.stringify(obj),
-          process.env.ENCRYPTION_HASH
-        ).catch((e) => {
-          throw e;
-        });
-
         /**
          * Jika salah {n} times, maka harus cek ldap
          * dan get bad count dan kapan bisa login
@@ -210,7 +180,7 @@ export default class AuthService extends Service {
               ? verifyLdap.entries[0].lockoutTime
               : undefined;
 
-          console.log(`LockoutTime`, lockoutTime);
+          logger.warn(`${AuthService.name}: ${lockoutTime}`);
           if (lockoutTime) {
             const date: Date = this.adConvertTime(lockoutTime as string);
             logger.error(
@@ -219,6 +189,19 @@ export default class AuthService extends Service {
             nextLogin.push(`Silakan coba kembali setelah beberapa menit`);
           }
 
+          const payload: ILogQMes = {
+            serviceName: AuthService.name,
+            action: 'bad-login',
+            json: { username: obj.username, groupId: obj.groupId, type: user.type, fullname: user.fullname, lockoutTime },
+            message: `${obj.username} failed login: (percobaan: ${user.attempt}x), kesalahan pada username atau password. lock-time: ${lockoutTime}`,
+            createdAt: new Date(),
+            createdBy: user.id,
+            createdUsername: user.username,
+            roleId: user.typeId,
+            roleName: user.type?.name
+          }
+
+          this.addLog([{ flag: `${AuthService.name}`, payload }])
           throw {
             stack: environment.isDev() ? verifyLdap : e,
             rawErrors: [
@@ -250,13 +233,22 @@ export default class AuthService extends Service {
             throw e;
           });
 
-        /// send log by msg-broker
-        // <-- here -->
+        const payload: ILogQMes = {
+          serviceName: AuthService.name,
+          action: 'bad-login',
+          json: { username: obj.username, groupId: obj.groupId, type: user.type, fullname: user.fullname },
+          message: `${obj.username} failed login: (percobaan: ${user.attempt}x), kesalahan pada username atau password`,
+          createdAt: new Date(),
+          createdBy: user.id,
+          createdUsername: user.username,
+          roleId: user.typeId,
+          roleName: user.type?.name
+        }
 
+        this.addLog([{ flag: `${AuthService.name}`, payload }])
         throw {
           rawErrors: [
-            `(percobaan: ${
-              user.attempt + 1
+            `(percobaan: ${user.attempt + 1
             }x), kesalahan pada username atau password`,
           ],
           stack: e,
@@ -267,12 +259,6 @@ export default class AuthService extends Service {
        * handle LDAP binding
        */
       if (!valid) {
-        const objEnc = await aesCbcEncrypt(
-          JSON.stringify(obj),
-          process.env.ENCRYPTION_HASH
-        ).catch((e) => {
-          throw e;
-        });
         await prisma
           .$transaction([
             prisma.user.update({
@@ -296,9 +282,19 @@ export default class AuthService extends Service {
             throw e;
           });
 
-        /// send log by msg-broker
-        // <-- here -->
+        const payload: ILogQMes = {
+          serviceName: AuthService.name,
+          action: 'bad-login',
+          json: { username: obj.username, groupId: obj.groupId, type: user.type, fullname: user.fullname },
+          message: `${obj.username} failed login`,
+          createdAt: new Date(),
+          createdBy: user.id,
+          createdUsername: user.username,
+          roleId: user.typeId,
+          roleName: user.type?.name
+        }
 
+        this.addLog([{ flag: `${AuthService.name}`, payload }])
         throw { rawErrors: [LOGIN_FAIL_01] } as IApiError;
       } else {
         const token = Jwt.sign(
@@ -394,8 +390,19 @@ export default class AuthService extends Service {
               throw e;
             });
 
-            /// send log by msg-broker
-            // <-- here -->
+            const payload: ILogQMes = {
+              serviceName: AuthService.name,
+              action: 'login',
+              json: { username: obj.username, groupId: obj.groupId, type: user.type, fullname: user.fullname },
+              message: `${obj.username} success login`,
+              createdAt: new Date(),
+              createdBy: user.id,
+              createdUsername: user.username,
+              roleId: user.typeId,
+              roleName: user.type?.name
+            }
+
+            this.addLog([{ flag: `${AuthService.name}`, payload }])
           })
           .catch((e) => {
             throw e;
@@ -422,6 +429,8 @@ export default class AuthService extends Service {
             select: {
               username: true,
               email: true,
+              groupId: true,
+              typeId: true,
               fullname: true,
               type: {
                 select: { name: true },
@@ -452,9 +461,19 @@ export default class AuthService extends Service {
           throw e;
         });
 
-      /// send log by msg-broker
-      // <-- here -->
+      const payload: ILogQMes = {
+        serviceName: AuthService.name,
+        action: 'logout',
+        json: { username: user.user.username, groupId: user.user.groupId, type: user.user.type, fullname: user.user.fullname },
+        message: `${user.user.username} success logout`,
+        createdAt: new Date(),
+        createdBy: user.userId,
+        createdUsername: user.user.username,
+        roleId: user.user.typeId,
+        roleName: user.user.type?.name
+      }
 
+      this.addLog([{ flag: `${AuthService.name}`, payload }])
       return { messages: [] } as IMessages;
     }
   }
@@ -472,10 +491,10 @@ export default class AuthService extends Service {
     const ldapPassword: string = ldap.usePlain
       ? ldap.password
       : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH).catch(
-          (e) => {
-            throw e;
-          }
-        );
+        (e) => {
+          throw e;
+        }
+      );
 
     const client = new Client({
       url: ldap.url,

@@ -5,10 +5,10 @@ export class ILogQMes {
     json: Record<string, any>;
     message: string;
     createdAt?: Date;
-    createdBy: number;
-    createdUsername: string;
-    roleId: number;
-    roleName: string;
+    createdBy?: number | undefined | null;
+    createdUsername?: string | undefined | null;
+    roleId?: number | undefined | null;
+    roleName?: string | undefined | null;
 
     constructor () {
         this.createdAt = new Date()
@@ -23,8 +23,8 @@ export class INotifQMes {
     message: string;
     url?: string;
     createdAt?: Date;
-    createdBy: number;
-    createdUsername: string;
+    createdBy: number | undefined | null;
+    createdUsername: string | undefined | null;
     forUserId?: bigint;
 
     constructor () {

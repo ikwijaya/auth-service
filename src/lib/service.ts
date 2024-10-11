@@ -1,5 +1,8 @@
+import { ILogQMes, INotifQMes } from '@/dto/queue.dto';
 import logger from './logger';
 import prisma from '@/lib/prisma';
+import { Queue } from 'bullmq';
+import IORedis from 'ioredis';
 
 /**
  * `Api` Represents an abstract base class for common expressJS API operations.
@@ -110,10 +113,8 @@ abstract class Service {
       .concat(waitingUser)
       .forEach((e) =>
         logger.info(
-          `${e.actionCode === 'A' ? 'Approved' : 'Last Approved'}: (status: ${
-            e.actionCode
-          }) FID-${fid}, with GID-${groupId}: send to UID-${e.id}: ${
-            e.username
+          `${e.actionCode === 'A' ? 'Approved' : 'Last Approved'}: (status: ${e.actionCode
+          }) FID-${fid}, with GID-${groupId}: send to UID-${e.id}: ${e.username
           }`
         )
       );
@@ -227,13 +228,42 @@ abstract class Service {
       .concat(responder)
       .forEach((e) =>
         logger.info(
-          `${e.actionCode === 'A' ? 'Approved' : 'Last Approved'}: GID: ${
-            e.groupId
+          `${e.actionCode === 'A' ? 'Approved' : 'Last Approved'}: GID: ${e.groupId
           } responder email is ${e.email} - ${e.fullname}`
         )
       );
 
     return users.concat(responder);
+  }
+
+  /**
+   * 
+   * @param data 
+   */
+  public async addLog(data: { flag: string, payload: ILogQMes }[]) {
+    const connection = new IORedis({
+      host: process.env.REDIS_HOST,
+      port: parseInt(process.env.REDIS_PORT)
+    })
+
+    const now = Date.now()
+    const queue = new Queue('AppLog', { connection })
+    data.forEach(e => queue.add(`log-${e.flag}-${now}`, e.payload));
+  }
+
+  /**
+   * 
+   * @param data 
+   */
+  public async addNotif(data: { flag: string, payload: INotifQMes }[]) {
+    const connection = new IORedis({
+      host: process.env.REDIS_HOST,
+      port: parseInt(process.env.REDIS_PORT)
+    })
+
+    const now = Date.now()
+    const queue = new Queue('AppNotif', { connection })
+    data.forEach(e => queue.add(`not-${e.flag}-${now}`, e.payload));
   }
 }
 
