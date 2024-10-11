@@ -15,8 +15,8 @@ import {
   DEFAULT_DELETED,
   DEFAULT_SUCCESS,
   DEFAULT_UPDATED,
-  ERR_SURR_API,
 } from '@/utils/constants';
+import { ILogQMes } from '@/dto/queue.dto';
 
 export default class GroupService extends Service {
   /**
@@ -94,8 +94,8 @@ export default class GroupService extends Service {
     return {
       items: items.map((e) => ({
         ...e,
-        is_update: matrix.is_read && e.recordStatus === 'A',
-        is_delete: matrix.is_read && e.recordStatus === 'A',
+        is_update: matrix.is_update && e.recordStatus === 'A',
+        is_delete: matrix.is_delete && e.recordStatus === 'A',
       })),
       matrix,
       pagination: params,
@@ -226,6 +226,19 @@ export default class GroupService extends Service {
             throw e;
           });
 
+        const payload: ILogQMes = {
+          serviceName: GroupService.name,
+          action: 'create',
+          json: { obj },
+          message: `Group ${obj.name} is created`,
+          createdAt: new Date(),
+          createdBy: auth.userId,
+          createdUsername: auth.username,
+          roleId: auth.typeId,
+          roleName: auth.type?.name
+        }
+
+        this.addLog([{ flag: `${GroupService.name}`, payload }])
         return {
           messages: ['Grup', DEFAULT_SUCCESS],
           payload: group,
@@ -268,6 +281,19 @@ export default class GroupService extends Service {
           throw e;
         });
 
+        const payload: ILogQMes = {
+          serviceName: GroupService.name,
+          action: 'update',
+          json: { before: isExists, after: obj },
+          message: `Group ${obj.name} is updated`,
+          createdAt: new Date(),
+          createdBy: auth.userId,
+          createdUsername: auth.username,
+          roleId: auth.typeId,
+          roleName: auth.type?.name
+        }
+
+        this.addLog([{ flag: `${GroupService.name}`, payload }])
         return {
           messages: ['Grup', DEFAULT_UPDATED],
         } as IMessages;
@@ -321,6 +347,19 @@ export default class GroupService extends Service {
           throw e;
         });
 
+        const payload: ILogQMes = {
+          serviceName: GroupService.name,
+          action: 'delete',
+          json: { id, before: isExists },
+          message: `Group ${isExists.name} is deleted`,
+          createdAt: new Date(),
+          createdBy: auth.userId,
+          createdUsername: auth.username,
+          roleId: auth.typeId,
+          roleName: auth.type?.name
+        }
+
+        this.addLog([{ flag: `${GroupService.name}`, payload }])
         return {
           messages: ['Grup', DEFAULT_DELETED],
         } as IMessages;
