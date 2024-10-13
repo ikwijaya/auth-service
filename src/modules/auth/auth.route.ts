@@ -17,13 +17,5 @@ router.post(
 );
 
 router.get('/auth/logout', verifyJwtToken, controller.logout);
-router.get(
-  '/auth/impersonate/:id',
-  rateLimit({ windowMs, limit: 25 }),
-  verifyJwtToken,
-  verifyAccount,
-  controller.impersonate
-);
-router.get('/auth/group', verifyJwtToken, verifyAccount, controller.groups);
 
 export default router;

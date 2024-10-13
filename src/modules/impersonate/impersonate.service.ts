@@ -3,13 +3,13 @@ import Jwt from 'jsonwebtoken';
 import prisma from '@/lib/prisma';
 import { type IApiError } from '@/lib/errors';
 import { type LoginResDto } from '@/dto/auth.dto';
-import { IUserAccount, type IJwtVerify } from '@/dto/common.dto';
+import { IUserAccount, type IJwtVerify, IMessages } from '@/dto/common.dto';
 import environment from '@/lib/environment';
 import logger from '@/lib/logger';
 import { ILogQMes } from '@/dto/queue.dto';
 
 
-export class ImpersonateService extends Service {
+export default class ImpersonateService extends Service {
 
     /**
      * 
@@ -114,7 +114,7 @@ export class ImpersonateService extends Service {
         }
 
         this.addLog([{ flag: `${ImpersonateService.name}`, payload }])
-        return Array.from(new Set(groups));
+        return { messages: [], payload: { groups: Array.from(new Set(groups)) } } as IMessages
     }
 
     /**
