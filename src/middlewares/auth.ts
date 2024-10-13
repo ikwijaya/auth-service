@@ -72,60 +72,6 @@ export const verifyJwtToken = async (
  * @param res
  * @param next
  */
-export const verifyJwtTokenView = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const { headers } = req;
-  const token = headers.token;
-
-  if (!token)
-    res
-      .status(HttpStatusCode.Unauthorized)
-      .send({ rawErrors: [TOKEN_FAIL_01] });
-  else {
-    Jwt.verify(
-      token as string,
-      process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
-      async function (err, verify: IJwtVerify) {
-        if (err)
-          res.status(HttpStatusCode.Unauthorized).send({
-            rawErrors: [AUTH_FAIL_00],
-            stack: err.message,
-            relogin: true,
-          } as IApiError);
-        else {
-          const _verify: IJwtVerify = await fetchMinimal(verify).catch((e) => {
-            throw e;
-          });
-          if (verify.type === 'app-view') {
-            delete _verify.iat;
-            delete _verify.exp;
-            const _token = Jwt.sign(
-              _verify,
-              process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
-              { expiresIn: process.env.JWT_EXPIRE }
-            );
-            req.jwtToken = _token;
-            req.jwtVerify = _verify;
-            next();
-          } else
-            res
-              .status(HttpStatusCode.Unauthorized)
-              .send({ rawErrors: [TOKEN_FAIL_02] });
-        }
-      }
-    );
-  }
-};
-
-/**
- *
- * @param req
- * @param res
- * @param next
- */
 export const verifyAccount = async (
   req: Request,
   res: Response,
@@ -157,7 +103,6 @@ export const verifyAccount = async (
               userId,
               token,
               formId,
-              verify.method,
               verify.groupId
             ).catch((e) => {
               throw e;
@@ -217,7 +162,6 @@ const fetchUAC = async (
   id: number,
   token: string | undefined,
   formId: undefined | string,
-  method: 'original' | 'impersonate',
   groupId: number
 ): Promise<IKickLogin> => {
   const user = (await prisma.userRev
@@ -247,6 +191,7 @@ const fetchUAC = async (
       where: {
         userId: id,
         actionCode: 'A',
+        groupId: groupId
       },
       orderBy: {
         checkedAt: 'desc',
@@ -263,13 +208,6 @@ const fetchUAC = async (
   if (!isActive) return { relogin: true } as IKickLogin;
   if (!user) return { relogin: false } as IKickLogin;
   if (formId) user.formId = Number(formId);
-
-  /// handle user when switched as impersonate user
-  if (method === 'impersonate') {
-    const group = await prisma.group.findFirst({ select: { name: true }, where: { id: groupId }}).catch(e => { throw e })
-    user.groupId = groupId
-    if (group) user.group = group
-  }
   
   return { relogin: false, payload: user } as IKickLogin;
 };

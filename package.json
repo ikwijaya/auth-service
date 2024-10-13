@@ -68,6 +68,7 @@
     "memory-cache": "^0.2.0",
     "morgan": "^1.10.0",
     "nocache": "^4.0.0",
+    "rate-limit-redis": "^4.2.0",
     "reflect-metadata": "^0.2.2",
     "uuid": "^10.0.0",
     "winston": "^3.10.0"

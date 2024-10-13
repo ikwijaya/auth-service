@@ -20,6 +20,12 @@ export class LoginDto {
 export class LoginResDto {
   @IsString()
   accessToken: string;
+
+  @IsOptional()
+  expiresIn: string;
+
+  @IsInt()
+  groupId: number;
 }
 
 export class LogoutResDto {

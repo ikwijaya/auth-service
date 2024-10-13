@@ -241,6 +241,8 @@ abstract class Service {
    * @param data 
    */
   public async addLog(data: { flag: string, payload: ILogQMes }[]) {
+    if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
+    
     const connection = new IORedis({
       host: process.env.REDIS_HOST,
       port: parseInt(process.env.REDIS_PORT)
@@ -257,6 +259,8 @@ abstract class Service {
    * @param data 
    */
   public async addNotif(data: { flag: string, payload: INotifQMes }[]) {
+    if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
+
     const connection = new IORedis({
       host: process.env.REDIS_HOST,
       port: parseInt(process.env.REDIS_PORT)

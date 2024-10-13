@@ -3,6 +3,8 @@
 import crypto from 'crypto';
 import exRateLimit from 'express-rate-limit';
 import { type IApiError } from './errors';
+import { RedisStore } from 'rate-limit-redis'
+import IORedis from 'ioredis';
 
 /**
  * Encrypts plaintext using AES-CBC with supplied password, for decryption with aesCbcDecrypt().
@@ -115,6 +117,7 @@ export function generateRandomString(
 interface IRateLimit {
   windowMs: number | undefined;
   limit: number | undefined;
+  skip?: string[]
 }
 /**
  *
@@ -122,11 +125,31 @@ interface IRateLimit {
  * @returns
  */
 export function rateLimit(options: IRateLimit) {
-  const limiter = exRateLimit({
-    windowMs: options.windowMs,
-    limit: options.limit,
-    message: 'Terlalu banyak permintaan, silakan coba lagi nanti',
-  });
+  const connection = new IORedis({
+    host: process.env.REDIS_HOST,
+    port: parseInt(process.env.REDIS_PORT)
+  })
 
-  return limiter;
+  if (process.env.REDIS_HOST)
+    return exRateLimit({
+      skip: (req, res) => options.skip ? options.skip.includes(req.ip) : false,
+      windowMs: options.windowMs,
+      limit: options.limit,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { rawErrors: ['Terlalu banyak permintaan, silakan coba lagi nanti'] } as IApiError,
+      store: new RedisStore({
+        // @ts-expect-error - Known issue: the `call` function is not present in @types/ioredis
+        sendCommand: (...args: string[]) => connection.call(...args)
+      })
+    });
+  else
+    return exRateLimit({
+      skip: (req, res) => options.skip ? options.skip.includes(req.ip) : false,
+      windowMs: options.windowMs,
+      limit: options.limit,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { rawErrors: ['Terlalu banyak permintaan, silakan coba lagi nanti'] } as IApiError,
+    });
 }

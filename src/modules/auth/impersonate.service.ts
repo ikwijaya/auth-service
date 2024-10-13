@@ -14,6 +14,8 @@ export class ImpersonateService extends Service {
     /**
      * 
      * @param auth 
+     * @param groupId 
+     * @returns 
      */
     public async impersonate(auth: IUserAccount, groupId: number) {
         const token = Jwt.sign(
@@ -33,22 +35,36 @@ export class ImpersonateService extends Service {
         const group = await prisma.group.findFirst({ where: { id: groupId } }).catch(e => { throw e })
         if (!group) throw { rawErrors: ["Group tidak Kami temukan"] } as IApiError
 
-        /// check user-group here
-        const findRelated = await prisma.userGroup.findFirst({
+        /// check user in another group here..
+        const findRelated = await prisma.userRev.findFirst({
+            select: {
+                userId: true,
+                id: true,
+                group: { select: { name: true } },
+                type: { select: { name: true } },
+                checkedAt: true,
+                checkedBy: true,
+                makedAt: true,
+                makedBy: true
+            },
             where: {
                 groupId: groupId,
                 userId: auth.userId,
-                recordStatus: 'A'
+                recordStatus: 'A',
+                actionCode: 'A'
+            },
+            orderBy: {
+                checkedAt: 'desc',
             }
         }).catch(e => { throw e })
-        if (!findRelated) throw { rawErrors: ["Anda tidak berhak meng-akses group tersebut"] } as IApiError
+        if (!findRelated) throw { rawErrors: ["Anda tidak berhak meng-akses group tersebut (" + group.name + ")"] } as IApiError
 
         await this.relogin(auth, token).catch(e => { throw e });
         const payload: ILogQMes = {
             serviceName: ImpersonateService.name,
             action: 'switch-login',
             json: { username: auth.username, groupId: auth.groupId, type: auth.type, fullname: auth.fullname, related: findRelated },
-            message: `${auth.username} success impersonate login`,
+            message: `${auth.username} success impersonate login to group ${findRelated.group?.name}`,
             createdAt: new Date(),
             createdBy: auth.userId,
             createdUsername: auth.username,
@@ -60,7 +76,45 @@ export class ImpersonateService extends Service {
         return {
             accessToken: token,
             expiresIn: process.env.JWT_EXPIRE,
+            groupId: groupId
         } as LoginResDto;
+    }
+
+    /**
+     * 
+     * @param auth 
+     */
+    public async groups(auth: IUserAccount) {
+        const _group = await prisma.userRev.groupBy({
+            by: ['groupId'],
+            where: {
+                userId: auth.userId,
+                actionCode: 'A'
+            }
+        }).catch(e => { throw e })
+
+        const gIds = _group.map(e => e.groupId).filter(this.notEmpty)
+        const groups = await prisma.group.findMany({
+            select: { id: true, name: true },
+            where: {
+                id: { in: gIds }
+            }
+        }).catch(e => { throw e })
+
+        const payload: ILogQMes = {
+            serviceName: ImpersonateService.name,
+            action: 'groups',
+            json: { username: auth.username, groupId: auth.groupId, type: auth.type, fullname: auth.fullname, matchGroupIds: gIds, groups },
+            message: `${auth.username} is inquiry some groups`,
+            createdAt: new Date(),
+            createdBy: auth.userId,
+            createdUsername: auth.username,
+            roleId: auth.typeId,
+            roleName: auth.type?.name
+        }
+
+        this.addLog([{ flag: `${ImpersonateService.name}`, payload }])
+        return Array.from(new Set(groups));
     }
 
     /**

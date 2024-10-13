@@ -11,7 +11,7 @@ const controller = new Controller();
 
 router.post(
   '/auth/login',
-  rateLimit({ windowMs, limit: 50 }),
+  rateLimit({ windowMs, limit: 25 }),
   RequestValidator.validate(LoginDto),
   controller.login
 );
@@ -19,10 +19,11 @@ router.post(
 router.get('/auth/logout', verifyJwtToken, controller.logout);
 router.get(
   '/auth/impersonate/:id',
-  rateLimit({ windowMs, limit: 20 }),
+  rateLimit({ windowMs, limit: 25 }),
   verifyJwtToken,
   verifyAccount,
   controller.impersonate
 );
+router.get('/auth/group', verifyJwtToken, verifyAccount, controller.groups);
 
 export default router;

@@ -52,33 +52,45 @@ if (!environment.isDev()) {
   }
 }
 
-const { printf, combine, label, timestamp, json, prettyPrint } = format;
 /**
+ * 
  * save in redis-log 
  * when level is not info
+ * @param level 
+ * @param message 
+ * @returns 
  */
+const addSysLog = (level: string, message: any) => {
+  if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
+
+  const value: ILogQMes = {
+    serviceName: process.env.APP_NAME,
+    action: `${level}-${label}`,
+    json: message,
+    message: message
+  }
+
+  const connection = new IORedis({
+    host: process.env.REDIS_HOST,
+    port: parseInt(process.env.REDIS_PORT)
+  })
+
+  const now = Date.now()
+  const queue = new Queue('syslog', { connection })
+  if (level !== 'info') queue.add(`syslog-${now}`, value)
+  queue.on('error', (err) => logger.error(`Logger: ${err.message}`));
+}
+
+const { printf, combine, label, timestamp, json, prettyPrint } = format;
 const logFormattter = printf(({ level, message, label, timestamp }) => {
   try {
-    const value: ILogQMes = {
-      serviceName: process.env.APP_NAME,
-      action: `${level}-${label}`,
-      json: message,
-      message: message
-    } 
-
-    const connection = new IORedis({
-      host: process.env.REDIS_HOST,
-      port: parseInt(process.env.REDIS_PORT)
-    })
-
-    const now = Date.now()
-    const queue = new Queue('syslog', { connection })
-    if (level !== 'info') queue.add(`syslog-${now}`, value)
-    queue.on('error', (err) => logger.error(`Logger: ${err.message}`));
-
+    addSysLog(level, message);
+    
     // print in cli
-    const labelPrint = environment.isProd() ? chalk.bgYellow : chalk.green.bold; 
-    const levelPrint = ['error', 'err'].includes(level) ? chalk.red.bold : chalk.italic.grey; 
+    const labelPrint = environment.isProd() ? chalk.bgYellow : chalk.green.bold;
+    const levelPrint = ['error', 'err'].includes(level) ? chalk.red.bold :
+      ['warn', 'warning'].includes(level) ? chalk.yellow.italic
+        : chalk.italic.grey;
     return `[${labelPrint(String(label).toUpperCase())}] ${String(timestamp)} ${levelPrint(level)}: ${String(
       message
     )}`;

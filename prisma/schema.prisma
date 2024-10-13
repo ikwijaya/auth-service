@@ -55,9 +55,6 @@ model User {
   UserRev          UserRev[]
   WizardsCreate    Wizard[]    @relation("createdUser")
   WizardsUpdate    Wizard[]    @relation("updatedUser")
-  UserGroup        UserGroup[]
-  UserGroupCreate  UserGroup[] @relation("createdUser")
-  UserGroupUpdate  UserGroup[] @relation("updatedUser")
 }
 
 model UserRev {
@@ -91,23 +88,6 @@ model UserRev {
   makedUser    User?     @relation("makedUser", fields: [makedBy], references: [id])
   type         Type?     @relation(fields: [typeId], references: [id])
   user         User      @relation(fields: [userId], references: [id])
-}
-
-model UserGroup {
-  id           Int       @id @default(autoincrement())
-  groupId      Int
-  userId       Int
-  typeId       Int
-  createdAt    DateTime  @default(now())
-  createdBy    Int
-  updatedAt    DateTime? @updatedAt
-  updatedBy    Int?
-  recordStatus String    @default("A")
-  createdUser  User      @relation("createdUser", fields: [createdBy], references: [id])
-  user         User      @relation(fields: [userId], references: [id])
-  group        Group     @relation(fields: [groupId], references: [id])
-  type         Type      @relation(fields: [typeId], references: [id])
-  updatedUser  User?     @relation("updatedUser", fields: [updatedBy], references: [id])
 }
 
 model Wizard {
@@ -170,7 +150,6 @@ model Type {
   updatedUser  User?       @relation("updatedUser", fields: [updatedBy], references: [id])
   Users        User[]
   UserRev      UserRev[]
-  UserGroup    UserGroup[]
 }
 
 model Group {
@@ -188,7 +167,6 @@ model Group {
   Types        Type[]
   User         User[]
   UserRev      UserRev[]
-  UserGroup    UserGroup[]
 }
 
 model Access {

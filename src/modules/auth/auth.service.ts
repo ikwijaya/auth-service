@@ -405,6 +405,7 @@ export default class AuthService extends Service {
         return {
           accessToken: token,
           expiresIn: process.env.JWT_EXPIRE,
+          groupId: user.groupId
         } as LoginResDto;
       }
     }
