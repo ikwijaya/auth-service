@@ -1,5 +1,7 @@
 
 export class ILogQMes {
+    encryptionMode?: 'at-rest' | 'in-transit' | 'no' | 'both';
+    encryptionKey?: string;
     serviceName?: string;
     action: string;
     json: Record<string, any>;
@@ -17,6 +19,8 @@ export class ILogQMes {
 }
 
 export class INotifQMes {
+    encryptionMode?: 'at-rest' | 'in-transit' | 'no' | 'both';
+    encryptionKey?: string;
     serviceName?: string;
     action: string;
     json: Record<string, any>;

@@ -69,9 +69,13 @@ const fetchMatrix = async (
   formId: number | undefined,
   roleAction: ROLE_ACTION
 ): Promise<IFetchMatrix> => {
+  let valid: boolean = false;
+  const matrix: IUserMatrix = {};
+  const object: IUserMatrix = {};
   const access = await prisma.access
     .findMany({
       select: {
+        formId: true,
         roleAction: true,
         roleValue: true,
       },
@@ -85,14 +89,11 @@ const fetchMatrix = async (
       throw e;
     });
 
-  const object: IUserMatrix = {};
-  let valid: boolean = false;
   access.forEach((e) => {
     if (e.roleAction === roleAction && e.roleValue) valid = true;
     object[e.roleAction] = e.roleValue;
   });
 
-  const matrix: IUserMatrix = {};
   for (const key in object) {
     if (Object.prototype.hasOwnProperty.call(object, key)) {
       if (key === 'C') matrix.is_create = object[key];

@@ -41,7 +41,7 @@ router.post(
   '/master/group',
   verifyJwtToken,
   verifyAccount,
-  MatrixValidator.validate(ROLE_ACTION.read),
+  MatrixValidator.validate(ROLE_ACTION.create),
   RequestValidator.validate(CreateGroupDto),
   controller.create
 );
@@ -49,7 +49,7 @@ router.patch(
   '/master/group/:id',
   verifyJwtToken,
   verifyAccount,
-  MatrixValidator.validate(ROLE_ACTION.read),
+  MatrixValidator.validate(ROLE_ACTION.update),
   RequestValidator.validate(UpdateGroupDto),
   controller.update
 );
@@ -57,7 +57,7 @@ router.delete(
   '/master/group/:id/persist',
   verifyJwtToken,
   verifyAccount,
-  MatrixValidator.validate(ROLE_ACTION.read),
+  MatrixValidator.validate(ROLE_ACTION.delete),
   controller.delPersistent
 );
 

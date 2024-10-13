@@ -41,7 +41,7 @@ router.post(
   '/master/type',
   verifyJwtToken,
   verifyAccount,
-  MatrixValidator.validate(ROLE_ACTION.read),
+  MatrixValidator.validate(ROLE_ACTION.create),
   RequestValidator.validate(CreateTypeDto),
   controller.create
 );
@@ -49,7 +49,7 @@ router.patch(
   '/master/type/:id',
   verifyJwtToken,
   verifyAccount,
-  MatrixValidator.validate(ROLE_ACTION.read),
+  MatrixValidator.validate(ROLE_ACTION.update),
   RequestValidator.validate(UpdateTypeDto),
   controller.update
 );
@@ -57,7 +57,7 @@ router.delete(
   '/master/type/:id/persist',
   verifyJwtToken,
   verifyAccount,
-  MatrixValidator.validate(ROLE_ACTION.read),
+  MatrixValidator.validate(ROLE_ACTION.delete),
   controller.delPersistent
 );
 
