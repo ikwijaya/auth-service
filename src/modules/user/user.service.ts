@@ -224,7 +224,6 @@ export default class UserService extends Service {
     name: string;
     url: string | null;
   } | null> {
-    const UNREGISTER_PATH = process.env.UNREGISTER_PATH ?? '';
     const url = obj.path;
     const menu = await prisma.form
       .findFirst({
@@ -244,11 +243,13 @@ export default class UserService extends Service {
 
     if (menu) return menu;
     else {
-      const split = UNREGISTER_PATH.split(',');
-      const valid = split.includes(url);
+      const options = await prisma.options.findFirst({
+        select: { value: true, key: true },
+        where: { flag: 'unknown-route', value: url, recordStatus: 'A' }
+      }).catch(e => { throw e })
 
-      if (!valid) return null;
-      else return { id: 1, name: 'unregister-path', url };
+      if (!options) return null;
+      else return { id: 1, name: options.key, url: options.value };
     }
   }
 }

@@ -88,6 +88,8 @@ model UserRev {
   makedUser    User?     @relation("makedUser", fields: [makedBy], references: [id])
   type         Type?     @relation(fields: [typeId], references: [id])
   user         User      @relation(fields: [userId], references: [id])
+
+  @@index([username], map: "usernameIndex")
 }
 
 model Wizard {
@@ -131,7 +133,7 @@ model Ldap {
 }
 
 model Type {
-  id           Int         @id @default(autoincrement())
+  id           Int       @id @default(autoincrement())
   groupId      Int?
   name         String
   /// useful for type as checker or maker flag
@@ -139,15 +141,15 @@ model Type {
   /// useful for type as checker or maker flag
   mode         String?
   note         String?
-  createdAt    DateTime    @default(now())
+  createdAt    DateTime  @default(now())
   createdBy    Int
-  updatedAt    DateTime?   @updatedAt
+  updatedAt    DateTime? @updatedAt
   updatedBy    Int?
-  recordStatus String      @default("A")
+  recordStatus String    @default("A")
   Access       Access[]
-  createdUser  User        @relation("createdUser", fields: [createdBy], references: [id])
-  group        Group?      @relation(fields: [groupId], references: [id])
-  updatedUser  User?       @relation("updatedUser", fields: [updatedBy], references: [id])
+  createdUser  User      @relation("createdUser", fields: [createdBy], references: [id])
+  group        Group?    @relation(fields: [groupId], references: [id])
+  updatedUser  User?     @relation("updatedUser", fields: [updatedBy], references: [id])
   Users        User[]
   UserRev      UserRev[]
 }
@@ -184,6 +186,9 @@ model Access {
   form         Form      @relation(fields: [formId], references: [id])
   type         Type      @relation(fields: [typeId], references: [id])
   updatedUser  User?     @relation("updatedUser", fields: [updatedBy], references: [id])
+
+  @@index([formId], map: "formIdIndex")
+  @@index([typeId], map: "typeIdIndex")
 }
 
 model Role {
@@ -258,6 +263,16 @@ model Session {
 
   @@index([userId], map: "userIdIndex")
   @@index([recordStatus], map: "recordStatusIndex")
+}
+
+model Options {
+  id           Int      @id @default(autoincrement())
+  flag         String
+  key          String
+  value        String
+  changelog    String
+  createdAt    DateTime @default(now())
+  recordStatus String   @default("A")
 }
 
 /// The underlying view does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.

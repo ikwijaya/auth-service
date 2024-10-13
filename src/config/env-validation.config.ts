@@ -24,7 +24,6 @@ const envValidationConfig = {
 
   DATABASE_URL: str(),
   NUM_PROXY: num(),
-  UNREGISTER_PATH: str(),
 
   REDIS_HOST: str({ default: 'localhost' }),
   REDIS_PORT: num({ default: 6379 }),

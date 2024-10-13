@@ -26,7 +26,6 @@ declare global {
 
       DATABASE_URL: string;
       NUM_PROXY: string;
-      UNREGISTER_PATH: string | undefined;
 
       REDIS_HOST: string;
       REDIS_PORT: string;
