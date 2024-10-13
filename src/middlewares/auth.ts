@@ -156,7 +156,9 @@ export const verifyAccount = async (
             const { relogin, payload } = await fetchUAC(
               userId,
               token,
-              formId
+              formId,
+              verify.method,
+              verify.groupId
             ).catch((e) => {
               throw e;
             });
@@ -214,7 +216,9 @@ interface IKickLogin {
 const fetchUAC = async (
   id: number,
   token: string | undefined,
-  formId: undefined | string
+  formId: undefined | string,
+  method: 'original' | 'impersonate',
+  groupId: number
 ): Promise<IKickLogin> => {
   const user = (await prisma.userRev
     .findFirst({
@@ -260,6 +264,13 @@ const fetchUAC = async (
   if (!user) return { relogin: false } as IKickLogin;
   if (formId) user.formId = Number(formId);
 
+  /// handle user when switched as impersonate user
+  if (method === 'impersonate') {
+    const group = await prisma.group.findFirst({ select: { name: true }, where: { id: groupId }}).catch(e => { throw e })
+    user.groupId = groupId
+    if (group) user.group = group
+  }
+  
   return { relogin: false, payload: user } as IKickLogin;
 };
 

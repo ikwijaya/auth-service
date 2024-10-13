@@ -303,6 +303,7 @@ export default class AuthService extends Service {
             username: obj.username,
             fullname: user.fullname,
             groupId: user.groupId,
+            method: 'original',
             type: 'app-cms',
           } as IJwtVerify,
           process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
@@ -381,13 +382,6 @@ export default class AuthService extends Service {
                 type: 'app-cms',
                 userId: user.userId,
               },
-            });
-
-            const userEnc = await aesCbcEncrypt(
-              JSON.stringify(user),
-              process.env.ENCRYPTION_HASH
-            ).catch((e) => {
-              throw e;
             });
 
             const payload: ILogQMes = {

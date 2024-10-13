@@ -89,6 +89,7 @@ export interface IJwtVerify {
   email?: string;
   fullname?: string;
   type: string;
+  method: 'original' | 'impersonate'
   privilegeName?: string;
   groupId: number;
   exp?: number;

@@ -2,9 +2,8 @@ import { Router } from 'express';
 import Controller from './auth.controller';
 import { LoginDto } from '@/dto/auth.dto';
 import RequestValidator from '@/middlewares/request-validator';
-import { verifyJwtToken } from '@/middlewares/auth';
+import { verifyAccount, verifyJwtToken } from '@/middlewares/auth';
 import { rateLimit } from '@/lib/security';
-import { verifyTimestamp } from '@/middlewares/default';
 
 const windowMs = 5 * 60 * 1000; /// 15 minutes
 const router: Router = Router();
@@ -13,11 +12,17 @@ const controller = new Controller();
 router.post(
   '/auth/login',
   rateLimit({ windowMs, limit: 50 }),
-  verifyTimestamp,
   RequestValidator.validate(LoginDto),
   controller.login
 );
 
 router.get('/auth/logout', verifyJwtToken, controller.logout);
+router.get(
+  '/auth/impersonate/:id',
+  rateLimit({ windowMs, limit: 20 }),
+  verifyJwtToken,
+  verifyAccount,
+  controller.impersonate
+);
 
 export default router;
