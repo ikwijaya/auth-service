@@ -460,7 +460,7 @@ export default class AuthService extends Service {
         serviceName: AuthService.name,
         action: 'logout',
         json: { username: user.user.username, groupId: user.user.groupId, type: user.user.type, fullname: user.user.fullname },
-        message: `${user.user.username} success logout`,
+        message: `${user.user.fullname} is logged out`,
         createdAt: new Date(),
         createdBy: user.userId,
         createdUsername: user.user.username,
