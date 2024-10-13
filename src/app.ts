@@ -13,7 +13,10 @@ import routes from '@/modules/index';
 import prismaClient from '@/lib/prisma';
 import environment from '@/lib/environment';
 import { verifyApiKey, verifyTimestamp } from './middlewares/default';
+import chalk from 'chalk';
 
+const chalkInit = chalk.yellow
+const initText = chalkInit(`RUNNING IN <${environment.env}> MODE`)
 const numberOfProxy = process.env.NUM_PROXY;
 class App {
   public express: express.Application;
@@ -23,7 +26,7 @@ class App {
     this.express.set('trust proxy', numberOfProxy);
     this.express.disable('x-powered-by');
 
-    if (environment.isDev()) console.log(`development: `, environment.isDev());
+    console.log(initText)
     if (environment.isDev()) this.express.use(cors());
     this.setMiddlewares();
     this.setRoutes();

@@ -249,6 +249,7 @@ abstract class Service {
     const now = Date.now()
     const queue = new Queue('AppLog', { connection })
     data.forEach(e => queue.add(`log-${e.flag}-${now}`, e.payload));
+    queue.on('error', (err) => logger.error(`${Service.name} addLog: ${err.message}`));
   }
 
   /**
@@ -264,6 +265,7 @@ abstract class Service {
     const now = Date.now()
     const queue = new Queue('AppNotif', { connection })
     data.forEach(e => queue.add(`not-${e.flag}-${now}`, e.payload));
+    queue.on('error', (err) => logger.error(`${Service.name} addNotif: ${err.message}`));
   }
 }
 
