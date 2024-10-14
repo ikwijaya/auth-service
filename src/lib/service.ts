@@ -242,14 +242,25 @@ abstract class Service {
    */
   public async addLog(data: { flag: string, payload: ILogQMes }[]) {
     if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
-    
+
     const connection = new IORedis({
       host: process.env.REDIS_HOST,
       port: parseInt(process.env.REDIS_PORT)
     })
 
     const now = Date.now()
-    const queue = new Queue('AppLog', { connection })
+    const queue = new Queue('AppLog', {
+      connection,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: { count: 1000 },
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 1000
+        }
+      }
+    })
     data.forEach(e => queue.add(`log-${e.flag}-${now}`, e.payload));
     queue.on('error', (err) => logger.error(`${Service.name} addLog: ${err.message}`));
   }
@@ -267,7 +278,18 @@ abstract class Service {
     })
 
     const now = Date.now()
-    const queue = new Queue('AppNotif', { connection })
+    const queue = new Queue('AppNotif', {
+      connection,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: { count: 1000 },
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 1000
+        }
+      }
+    })
     data.forEach(e => queue.add(`not-${e.flag}-${now}`, e.payload));
     queue.on('error', (err) => logger.error(`${Service.name} addNotif: ${err.message}`));
   }

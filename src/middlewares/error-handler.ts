@@ -5,7 +5,7 @@ import { type ApiError } from '@/lib/errors';
 import logger from '@/lib/logger';
 import chalk from 'chalk';
 
-const chalkRed = chalk.redBright
+const chalkRed = chalk.yellow
 const errorHandler = (
   err: ApiError,
   req: Request,
@@ -15,7 +15,7 @@ const errorHandler = (
   if (req.body.password) delete req.body.password;
   const chalkErr = chalkRed(`Request Error: 
   \nPath: ${req.path}
-  \nError: ${JSON.stringify(err)}
+  \nError: ${chalk.whiteBright.italic.bgRedBright(JSON.stringify(err))}
   \nHeaders: ${util.inspect(req.headers)}
   \nParams: ${util.inspect(req.params)}
   \nQuery: ${util.inspect(req.query)}
@@ -25,7 +25,7 @@ const errorHandler = (
   \nJwtToken: ${util.inspect(req.jwtToken)}
   \nJwtVerify: ${util.inspect(req.jwtVerify)}`)
 
-  logger.error(chalkErr);
+  logger.warn(chalkErr);
   const status: number = err.statusCode ?? HttpStatusCode.InternalServerError;
   res.status(status).send(err);
 

@@ -65,8 +65,8 @@ const addSysLog = (level: string, message: any) => {
 
   const value: ILogQMes = {
     serviceName: process.env.APP_NAME,
-    action: `${level}-${label}`,
-    json: message,
+    action: `${level}`,
+    json: {},
     message: message
   }
 
@@ -76,7 +76,18 @@ const addSysLog = (level: string, message: any) => {
   })
 
   const now = Date.now()
-  const queue = new Queue('syslog', { connection })
+  const queue = new Queue('syslog', {
+    connection,
+    defaultJobOptions: {
+      removeOnComplete: true,
+      removeOnFail: { count: 1000 },
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 1000
+      }
+    }
+  })
   if (level !== 'info') queue.add(`syslog-${now}`, value)
   queue.on('error', (err) => logger.error(`Logger: ${err.message}`));
 }
@@ -85,7 +96,7 @@ const { printf, combine, label, timestamp, json, prettyPrint } = format;
 const logFormattter = printf(({ level, message, label, timestamp }) => {
   try {
     addSysLog(level, message);
-    
+
     // print in cli
     const labelPrint = environment.isProd() ? chalk.bgYellow : chalk.green.bold;
     const levelPrint = ['error', 'err'].includes(level) ? chalk.red.bold :
