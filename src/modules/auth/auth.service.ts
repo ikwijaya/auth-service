@@ -113,7 +113,9 @@ export default class AuthService extends Service {
         action: 'bad-login',
         json: { username: obj.username, groupId: obj.groupId },
         message: `${obj.username} failed login`,
-        createdAt: new Date()
+        createdAt: new Date(),
+        device: obj.device,
+        ipAddress: obj.ipAddress
       }
 
       this.addLog([{ flag: `${AuthService.name}`, payload }])
@@ -198,7 +200,9 @@ export default class AuthService extends Service {
             createdBy: user.id,
             createdUsername: user.username,
             roleId: user.typeId,
-            roleName: user.type?.name
+            roleName: user.type?.name,
+            device: obj.device,
+            ipAddress: obj.ipAddress
           }
 
           this.addLog([{ flag: `${AuthService.name}`, payload }])
@@ -242,7 +246,9 @@ export default class AuthService extends Service {
           createdBy: user.id,
           createdUsername: user.username,
           roleId: user.typeId,
-          roleName: user.type?.name
+          roleName: user.type?.name,
+          device: obj.device,
+          ipAddress: obj.ipAddress
         }
 
         this.addLog([{ flag: `${AuthService.name}`, payload }])
@@ -291,7 +297,9 @@ export default class AuthService extends Service {
           createdBy: user.id,
           createdUsername: user.username,
           roleId: user.typeId,
-          roleName: user.type?.name
+          roleName: user.type?.name,
+          device: obj.device,
+          ipAddress: obj.ipAddress
         }
 
         this.addLog([{ flag: `${AuthService.name}`, payload }])
@@ -393,7 +401,9 @@ export default class AuthService extends Service {
               createdBy: user.id,
               createdUsername: user.username,
               roleId: user.typeId,
-              roleName: user.type?.name
+              roleName: user.type?.name,
+              device: obj.device,
+              ipAddress: obj.ipAddress
             }
 
             this.addLog([{ flag: `${AuthService.name}`, payload }])

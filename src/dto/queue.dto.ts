@@ -11,6 +11,8 @@ export class ILogQMes {
     createdUsername?: string | undefined | null;
     roleId?: number | undefined | null;
     roleName?: string | undefined | null;
+    device?: string;
+    ipAddress?: string;
 
     constructor () {
         this.createdAt = new Date()

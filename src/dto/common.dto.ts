@@ -33,6 +33,8 @@ export interface IUserAccount {
       name: string;
     };
   };
+  device?: string | undefined;
+  ipAddress?: string | undefined;
 }
 
 export interface IUserMatrix {

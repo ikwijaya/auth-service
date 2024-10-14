@@ -129,8 +129,14 @@ export const verifyAccount = async (
                     rawErrors: [AUTH_FAIL_02],
                   });
                 else {
+                  const ipAddress: string | undefined = req.headers['x-forwarded-for'] as string | undefined ?? req.socket.remoteAddress;
+                  const userAgent: string | undefined = req.headers['user-agent']
+
                   payload.token = req.jwtToken;
                   payload.sToken = token;
+                  payload.ipAddress = ipAddress;
+                  payload.device = userAgent;
+                  
                   req.userAccount = payload;
                   next();
                 }

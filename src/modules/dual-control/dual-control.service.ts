@@ -25,7 +25,9 @@ export default class DualControlService extends Service {
             createdBy: auth.userId,
             createdUsername: auth.username,
             roleId: auth.typeId,
-            roleName: auth.type?.name
+            roleName: auth.type?.name,
+            device: auth.device,
+            ipAddress: auth.ipAddress
         }
 
         this.addLog([ { flag: DualControlService.name, payload }])
@@ -51,7 +53,9 @@ export default class DualControlService extends Service {
             createdBy: auth.userId,
             createdUsername: auth.username,
             roleId: auth.typeId,
-            roleName: auth.type?.name
+            roleName: auth.type?.name,
+            device: auth.device,
+            ipAddress: auth.ipAddress
         }
 
         this.addLog([ { flag: DualControlService.name, payload }])
