@@ -42,17 +42,24 @@ export const verifyJwtToken = async (
             relogin: true,
           } as IApiError);
         else {
+          const ipAddress: string | undefined = req.headers['x-forwarded-for'] as string | undefined ?? req.socket.remoteAddress;
+          const userAgent: string | undefined = req.headers['user-agent']
           const _verify: IJwtVerify = await fetchMinimal(verify).catch((e) => {
             throw e;
           });
+
+          _verify.device = userAgent
+          _verify.ipAddress = ipAddress
+          delete _verify.iat;
+          delete _verify.exp;
+
           if (verify.type === 'app-cms') {
-            delete _verify.iat;
-            delete _verify.exp;
             const _token = Jwt.sign(
               _verify,
               process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
               { expiresIn: process.env.JWT_EXPIRE }
             );
+
             req.jwtToken = _token;
             req.jwtVerify = _verify;
             next();
@@ -136,7 +143,7 @@ export const verifyAccount = async (
                   payload.sToken = token;
                   payload.ipAddress = ipAddress;
                   payload.device = userAgent;
-                  
+
                   req.userAccount = payload;
                   next();
                 }
@@ -214,7 +221,7 @@ const fetchUAC = async (
   if (!isActive) return { relogin: true } as IKickLogin;
   if (!user) return { relogin: false } as IKickLogin;
   if (formId) user.formId = Number(formId);
-  
+
   return { relogin: false, payload: user } as IKickLogin;
 };
 

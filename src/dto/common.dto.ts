@@ -94,6 +94,8 @@ export interface IJwtVerify {
   method: 'original' | 'impersonate'
   privilegeName?: string;
   groupId: number;
+  device?: string | undefined;
+  ipAddress?: string | undefined;
   exp?: number;
   iat?: number;
 }
