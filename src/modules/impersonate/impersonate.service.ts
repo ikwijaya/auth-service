@@ -18,6 +18,29 @@ export default class ImpersonateService extends Service {
      * @returns 
      */
     public async impersonate(auth: IUserAccount, groupId: number) {
+        /// find group
+        const group = await prisma.group.findFirst({ where: { id: groupId } }).catch(e => { throw e })
+        if (!group) throw { rawErrors: ["Group tidak Kami temukan"] } as IApiError
+
+        /// check user in another group here..
+        const findRelated = await prisma.userGroup.findFirst({
+            select: {
+                userId: true,
+                group: { select: { name: true } },
+                type: { select: { name: true } },
+            },
+            where: {
+                groupId: groupId,
+                userId: auth.userId,
+                recordStatus: 'A',
+                actionCode: 'APPROVED'
+            },
+            orderBy: {
+                checkedAt: 'desc',
+            }
+        }).catch(e => { throw e })
+        if (!findRelated) throw { rawErrors: ["Anda tidak berhak meng-akses group tersebut (" + group.name + ")"] } as IApiError
+
         const token = Jwt.sign(
             {
                 id: auth.userId,
@@ -30,35 +53,7 @@ export default class ImpersonateService extends Service {
             process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
             { expiresIn: process.env.JWT_EXPIRE }
         );
-
-        /// find group
-        const group = await prisma.group.findFirst({ where: { id: groupId } }).catch(e => { throw e })
-        if (!group) throw { rawErrors: ["Group tidak Kami temukan"] } as IApiError
-
-        /// check user in another group here..
-        const findRelated = await prisma.userRev.findFirst({
-            select: {
-                userId: true,
-                id: true,
-                group: { select: { name: true } },
-                type: { select: { name: true } },
-                checkedAt: true,
-                checkedBy: true,
-                makedAt: true,
-                makedBy: true
-            },
-            where: {
-                groupId: groupId,
-                userId: auth.userId,
-                recordStatus: 'A',
-                actionCode: 'A'
-            },
-            orderBy: {
-                checkedAt: 'desc',
-            }
-        }).catch(e => { throw e })
-        if (!findRelated) throw { rawErrors: ["Anda tidak berhak meng-akses group tersebut (" + group.name + ")"] } as IApiError
-
+        
         await this.relogin(auth, token).catch(e => { throw e });
         const payload: ILogQMes = {
             serviceName: ImpersonateService.name,
@@ -87,11 +82,11 @@ export default class ImpersonateService extends Service {
      * @param auth 
      */
     public async groups(auth: IUserAccount) {
-        const _group = await prisma.userRev.groupBy({
+        const _group = await prisma.userGroup.groupBy({
             by: ['groupId'],
             where: {
                 userId: auth.userId,
-                actionCode: 'A'
+                actionCode: 'APPROVED'
             }
         }).catch(e => { throw e })
 

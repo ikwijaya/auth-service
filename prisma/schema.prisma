@@ -9,11 +9,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum actionCode {
+  WAITING
+  APPROVED
+  REJECTED
+}
+
+enum sysAction {
+  SUBMIT
+  DRAFT
+}
+
+enum rowAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
 model User {
   id               Int         @id @default(autoincrement())
   ldapId           Int?
   ldapDn           String?
-  typeId           Int?
   attempt          Int         @default(0)
   username         String      @unique
   fullname         String?
@@ -24,7 +40,6 @@ model User {
   updatedAt        DateTime?   @updatedAt
   updatedBy        Int?
   recordStatus     String      @default("A")
-  groupId          Int?
   AccessCreate     Access[]    @relation("createdUser")
   AccessUpdate     Access[]    @relation("updatedUser")
   FormsCreate      Form[]      @relation("createdUser")
@@ -33,8 +48,6 @@ model User {
   FormsGroupUpdate FormGroup[] @relation("updatedUser")
   GroupsCreate     Group[]     @relation("createdUser")
   GroupsUpdate     Group[]     @relation("updatedUser")
-  LdapsCreate      Ldap[]      @relation("createdUser")
-  LdapsUpdate      Ldap[]      @relation("updatedUser")
   RolesCreate      Role[]      @relation("createdUser")
   RolesUpdate      Role[]      @relation("updatedUser")
   Roles            Role[]
@@ -45,51 +58,36 @@ model User {
   TypesUpdate      Type[]      @relation("updatedUser")
   createdUser      User?       @relation("createdUser", fields: [createdBy], references: [id])
   UserCreate       User[]      @relation("createdUser")
-  group            Group?      @relation(fields: [groupId], references: [id])
   ldap             Ldap?       @relation(fields: [ldapId], references: [id])
-  type             Type?       @relation(fields: [typeId], references: [id])
   updatedUser      User?       @relation("updatedUser", fields: [updatedBy], references: [id])
   UsersUpdate      User[]      @relation("updatedUser")
-  UserRevChecker   UserRev[]   @relation("checkedUser")
-  UserRevMaker     UserRev[]   @relation("makedUser")
-  UserRev          UserRev[]
   WizardsCreate    Wizard[]    @relation("createdUser")
   WizardsUpdate    Wizard[]    @relation("updatedUser")
+  UserGroup        UserGroup[]
 }
 
-model UserRev {
-  id           Int       @id @default(autoincrement())
+model UserGroup {
+  id           Int        @id @default(autoincrement())
+  isDefault    Boolean    @default(false)
   userId       Int
-  ldapId       Int?
-  ldapDn       String?
-  groupId      Int?
-  typeId       Int?
-  attempt      Int       @default(0)
-  username     String
-  fullname     String?
-  jsonLdap     Json?
-  email        String?
-  createdAt    DateTime  @default(now())
-  createdBy    Int?
-  updatedAt    DateTime? @updatedAt
-  updatedBy    Int?
-  recordStatus String    @default("A")
-  actionCode   String?
-  actionNote   String?
-  checkedAt    DateTime?
-  checkedBy    Int?
-  makedAt      DateTime  @default(now())
-  makedBy      Int?
-  rowAction    String    @default("C")
-  sysAction    String    @default("submit")
-  checkedUser  User?     @relation("checkedUser", fields: [checkedBy], references: [id])
-  group        Group?    @relation(fields: [groupId], references: [id])
-  ldap         Ldap?     @relation(fields: [ldapId], references: [id])
-  makedUser    User?     @relation("makedUser", fields: [makedBy], references: [id])
-  type         Type?     @relation(fields: [typeId], references: [id])
-  user         User      @relation(fields: [userId], references: [id])
+  groupId      Int
+  typeId       Int
+  checkedBy    Int
+  checkedAt    DateTime
+  makedBy      Int
+  makedAt      DateTime
+  actionCode   actionCode
+  rowAction    rowAction  @default(CREATE)
+  sysAction    sysAction  @default(SUBMIT)
+  changelog    String?
+  recordStatus String     @default("A")
+  user         User       @relation(fields: [userId], references: [id])
+  group        Group      @relation(fields: [groupId], references: [id])
+  type         Type       @relation(fields: [typeId], references: [id])
 
-  @@index([username], map: "usernameIndex")
+  @@index([userId], map: "userIdUG_Index")
+  @@index([groupId], map: "groupIdUG_Index")
+  @@index([typeId], map: "typeIdUG_Index")
 }
 
 model Wizard {
@@ -122,36 +120,28 @@ model Ldap {
   usePlain     Boolean   @default(true)
   isDefault    Boolean   @default(false)
   createdAt    DateTime  @default(now())
-  createdBy    Int
   updatedAt    DateTime? @updatedAt
-  updatedBy    Int?
   recordStatus String    @default("A")
-  createdUser  User      @relation("createdUser", fields: [createdBy], references: [id])
-  updatedUser  User?     @relation("updatedUser", fields: [updatedBy], references: [id])
   User         User[]
-  UserRev      UserRev[]
 }
 
 model Type {
-  id           Int       @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
   groupId      Int?
   name         String
-  /// useful for type as checker or maker flag
   flag         String?
-  /// useful for type as checker or maker flag
   mode         String?
   note         String?
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime    @default(now())
   createdBy    Int
-  updatedAt    DateTime? @updatedAt
+  updatedAt    DateTime?   @updatedAt
   updatedBy    Int?
-  recordStatus String    @default("A")
+  recordStatus String      @default("A")
   Access       Access[]
-  createdUser  User      @relation("createdUser", fields: [createdBy], references: [id])
-  group        Group?    @relation(fields: [groupId], references: [id])
-  updatedUser  User?     @relation("updatedUser", fields: [updatedBy], references: [id])
-  Users        User[]
-  UserRev      UserRev[]
+  createdUser  User        @relation("createdUser", fields: [createdBy], references: [id])
+  group        Group?      @relation(fields: [groupId], references: [id])
+  updatedUser  User?       @relation("updatedUser", fields: [updatedBy], references: [id])
+  UserGroup    UserGroup[]
 }
 
 model Group {
@@ -167,8 +157,7 @@ model Group {
   createdUser  User        @relation("createdUser", fields: [createdBy], references: [id])
   updatedUser  User?       @relation("updatedUser", fields: [updatedBy], references: [id])
   Types        Type[]
-  User         User[]
-  UserRev      UserRev[]
+  UserGroup    UserGroup[]
 }
 
 model Access {
@@ -273,30 +262,4 @@ model Options {
   changelog    String
   createdAt    DateTime @default(now())
   recordStatus String   @default("A")
-}
-
-/// The underlying view does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-view userView {
-  id           Int       @unique
-  revId        Int?
-  groupId      Int?
-  typeId       Int?
-  username     String?
-  fullname     String?
-  email        String?
-  status       String?
-  recordStatus String?
-  makedBy      Int?
-  checkedBy    Int?
-  makedAt      DateTime?
-  checkedAt    DateTime?
-  makedName    String?
-  checkedName  String?
-  typeName     String?
-  groupName    String?
-  actionCode   String?
-  actionNote   String?
-  rowAction    String?
-  checkedEmail String?
-  makedEmail   String?
 }

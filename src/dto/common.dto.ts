@@ -11,27 +11,20 @@ export interface IUserAccount {
   id: number;
   userId: number;
   token: string;
-  sToken: string;
   formId?: number;
   username: string;
   fullname?: string | null;
   email?: string | null;
-  actionCode: string;
-  ldapId: number;
+  ldapId: number | null;
   typeId?: number;
   groupId?: number;
   group?: {
     name: string;
   };
   type?: {
-    id: number;
     name: string;
-    flag: string;
-    mode: string;
-    groupId?: number;
-    group?: {
-      name: string;
-    };
+    flag: string | null;
+    mode: string | null;
   };
   device?: string | undefined;
   ipAddress?: string | undefined;
@@ -93,6 +86,7 @@ export interface IJwtVerify {
   type: string;
   method: 'original' | 'impersonate'
   privilegeName?: string;
+  privilegeMode?: string;
   groupId: number;
   device?: string | undefined;
   ipAddress?: string | undefined;

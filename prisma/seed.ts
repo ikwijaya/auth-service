@@ -207,25 +207,22 @@ async function seed(): Promise<void> {
   });
 
   await prisma.$transaction(async (tx) => {
-    await tx.user.update({ data: { typeId: 1, ldapId: 1 }, where: { id: 1 } })
+    await tx.user.update({ data: { ldapId: 1 }, where: { id: 1 } })
     const _user = await tx.user
       .findFirst({ where: { id: 1 } })
       .catch(e => { throw e });
 
     if (_user)
-      await tx.userRev.create({
+      await tx.userGroup.create({
         data: {
           userId: _user.id,
           typeId: 1,
-          ldapId: 1,
-          username: _user.username,
-          createdAt: new Date(),
+          groupId: 1,
+          checkedAt: new Date(),
+          checkedBy: 1,
           makedAt: new Date(),
-          rowAction: 'C',
-          sysAction: 'submit',
-          actionNote: 'added by application.seed',
-          actionCode: 'A',
-          checkedAt: new Date()
+          makedBy: 1,
+          actionCode: 'APPROVED'
         }
       }).catch(e => { throw e })
 

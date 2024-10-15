@@ -33,58 +33,8 @@ export default class UserService extends Service {
    * @param auth
    * @returns
    */
-  public async me(auth: IUserAccount): Promise<{
-    user: unknown;
-    loginFail: unknown;
-    loginSuccess: unknown;
-    totalSessionActive: number;
-    totalSessionNonActive: number;
-  }> {
-    const user = await prisma.userRev
-      .findFirst({
-        select: {
-          id: true,
-          userId: true,
-          username: true,
-          fullname: true,
-          email: true,
-          attempt: true,
-          typeId: true,
-          type: {
-            select: {
-              name: true,
-              mode: true,
-            },
-          },
-          groupId: true,
-          group: {
-            select: {
-              name: true,
-            },
-          },
-        },
-        where: {
-          id: auth.id,
-          actionCode: 'A',
-        },
-        orderBy: {
-          checkedAt: 'desc',
-        },
-      })
-      .catch((e) => {
-        throw e;
-      });
-
-    const lastLogin: { loginFail: unknown; loginSuccess: unknown } | undefined =
-      undefined;
-
-    return {
-      user,
-      loginFail: null,
-      loginSuccess: null,
-      totalSessionActive: 0,
-      totalSessionNonActive: 0,
-    };
+  public async me(auth: IUserAccount) {
+    return auth
   }
 
   /**
@@ -103,7 +53,7 @@ export default class UserService extends Service {
           },
         },
         where: {
-          typeId: auth.type?.id,
+          typeId: auth.typeId,
           roleAction: 'R',
           roleValue: true,
         },

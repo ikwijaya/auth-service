@@ -7,7 +7,6 @@ import { type IJwtVerify, type IUserAccount } from '@/dto/common.dto';
 import {
   AUTH_FAIL_00,
   AUTH_FAIL_01,
-  AUTH_FAIL_02,
   TOKEN_FAIL_01,
   TOKEN_FAIL_02,
 } from '@/utils/constants';
@@ -128,25 +127,15 @@ export const verifyAccount = async (
                   .status(HttpStatusCode.Unauthorized)
                   .send({ rawErrors: [AUTH_FAIL_01] });
               else {
-                if (
-                  !payload.actionCode &&
-                  ['POST', 'PATCH', 'DELETE', 'PUT'].includes(method)
-                )
-                  res.status(HttpStatusCode.Unauthorized).send({
-                    rawErrors: [AUTH_FAIL_02],
-                  });
-                else {
-                  const ipAddress: string | undefined = req.headers['x-forwarded-for'] as string | undefined ?? req.socket.remoteAddress;
-                  const userAgent: string | undefined = req.headers['user-agent']
+                const ipAddress: string | undefined = req.headers['x-forwarded-for'] as string | undefined ?? req.socket.remoteAddress;
+                const userAgent: string | undefined = req.headers['user-agent']
 
-                  payload.token = req.jwtToken;
-                  payload.sToken = token;
-                  payload.ipAddress = ipAddress;
-                  payload.device = userAgent;
+                payload.token = req.jwtToken;
+                payload.ipAddress = ipAddress;
+                payload.device = userAgent;
 
-                  req.userAccount = payload;
-                  next();
-                }
+                req.userAccount = payload;
+                next();
               }
             }
           } else
@@ -173,55 +162,78 @@ interface IKickLogin {
 
 const fetchUAC = async (
   id: number,
-  token: string | undefined,
+  token: string,
   formId: undefined | string,
   groupId: number
 ): Promise<IKickLogin> => {
-  const user = (await prisma.userRev
+  const getUser = await prisma.user
     .findFirst({
       select: {
         id: true,
-        userId: true,
         username: true,
         email: true,
         fullname: true,
         ldapId: true,
-        typeId: true,
-        groupId: true,
-        actionCode: true,
-        group: {
-          select: {
-            name: true,
-          },
-        },
-        type: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
       },
       where: {
-        userId: id,
-        actionCode: 'A',
-        groupId: groupId
-      },
-      orderBy: {
-        checkedAt: 'desc',
-      },
+        id: id,
+      }
     })
     .catch((e) => {
       throw e;
-    })) as IUserAccount;
+    })
+
+  const getUserGroup = await prisma.userGroup.findFirst({
+    select: {
+      typeId: true,
+      type: {
+        select: {
+          name: true,
+          flag: true,
+          mode: true
+        }
+      },
+      groupId: true,
+      group: {
+        select: {
+          name: true,
+        }
+      },
+    },
+    where: {
+      groupId: groupId,
+      userId: id,
+      recordStatus: 'A',
+      actionCode: 'APPROVED'
+    },
+    orderBy: {
+      checkedAt: 'desc'
+    }
+  }).catch(e => { throw e })
 
   const isActive = await prisma.session.findFirst({
     where: { recordStatus: 'A', token, userId: id },
   });
 
   if (!isActive) return { relogin: true } as IKickLogin;
-  if (!user) return { relogin: false } as IKickLogin;
-  if (formId) user.formId = Number(formId);
+  if (!getUser) return { relogin: false } as IKickLogin;
+  if (!getUserGroup) return { relogin: false } as IKickLogin;
 
+  const user: IUserAccount = {
+    id: id,
+    userId: getUser.id,
+    token: token,
+    username: getUser.username,
+    fullname: getUser.fullname,
+    email: getUser.email,
+    ldapId: getUser.ldapId,
+    typeId: getUserGroup.typeId,
+    type: getUserGroup.type,
+    groupId: groupId,
+    group: getUserGroup.group
+  }
+
+  if (formId) user.formId = Number(formId);
   return { relogin: false, payload: user } as IKickLogin;
 };
 
@@ -230,22 +242,48 @@ const fetchUAC = async (
  * @param ijwt
  */
 const fetchMinimal = async (ijwt: IJwtVerify) => {
-  const user = await prisma.userRev
+  const getUser = await prisma.user
     .findFirst({
       select: {
-        type: { select: { name: true } },
         email: true,
       },
-      where: { userId: ijwt.id, actionCode: 'A' },
-      orderBy: { checkedAt: 'desc' },
+      where: { id: ijwt.id },
     })
     .catch((e) => {
       throw e;
     });
 
+  const getUserGroup = await prisma.userGroup.findFirst({
+    select: {
+      typeId: true,
+      type: {
+        select: {
+          name: true,
+          flag: true,
+          mode: true
+        }
+      },
+      groupId: true,
+      group: {
+        select: {
+          name: true,
+        }
+      },
+    },
+    where: {
+      groupId: ijwt.groupId,
+      userId: ijwt.id,
+      recordStatus: 'A',
+      actionCode: 'APPROVED'
+    },
+    orderBy: {
+      checkedAt: 'desc'
+    }
+  }).catch(e => { throw e })
+
   return {
     ...ijwt,
-    email: user?.email,
-    privilegeName: user?.type?.name,
+    email: getUser?.email,
+    privilegeName: getUserGroup?.type.name,
   } as IJwtVerify;
 };
