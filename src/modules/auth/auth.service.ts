@@ -280,8 +280,6 @@ export default class AuthService extends Service {
     else return { user, userGroup }
   }
 
-
-
   /**
    * 
    * @param obj 
@@ -392,6 +390,71 @@ export default class AuthService extends Service {
       expiresIn: process.env.JWT_EXPIRE,
       groupId: obj.groupId
     } as LoginResDto;
+  }
+
+  /**
+   * 
+   * @param username 
+   */
+  public async groups(username: string) {
+    const user = await prisma.user
+      .findFirst({
+        select: {
+          ldap: true,
+          id: true,
+          username: true,
+          fullname: true,
+          email: true,
+          attempt: true,
+        },
+        where: {
+          username: username.toLowerCase(),
+          recordStatus: 'A',
+        },
+      })
+      .catch((e) => {
+        throw e;
+      });
+
+    if (!user) throw { rawErrors: [LOGIN_FAIL_00] } as IApiError;
+    /**
+     * handle when user status is waiting for approval
+     * thats means this user has assign to some group before
+     * and this user has waiting for new group after
+     */
+    const findUserGroup: { id: number }[] = await prisma.$queryRaw`
+      SELECT  a."id"
+      FROM    "UserGroup" as a
+      INNER JOIN (
+        SELECT  MAX(b."checkedAt") as "maxdate", b."userId", b."groupId"
+        FROM    "UserGroup" as b
+        WHERE   b."actionCode" = 'APPROVED' AND b."recordStatus" = 'A'
+        GROUP BY b."userId", b."groupId"
+      ) as ib ON a."userId" = b."userId" AND a."groupId" = b."groupId" AND a."checkedAt" = b."maxdate"
+      WHERE   a."recordStatus" = 'A' AND a."actionCode" = 'APPROVED';
+    `
+
+    const userGroup = await prisma.userGroup.findMany({
+      select: {
+        userId: true,
+        groupId: true,
+        typeId: true,
+        user: { select: { username: true, fullname: true, email: true } },
+        group: { select: { name: true } },
+        type: { select: { name: true, mode: true, flag: true } },
+      },
+      where: { id: { in: findUserGroup.map(e => e.id) }, userId: user.id }
+    }).catch(e => { throw e })
+
+    const gIds = userGroup.map(e => e.groupId)
+    const groups = await prisma.group.findMany({
+      select: { id: true, name: true },
+      where: {
+        id: { in: gIds }
+      }
+    }).catch(e => { throw e })
+
+    return { messages: [], payload: { groups: Array.from(new Set(groups)) } } as IMessages
   }
 
   /**

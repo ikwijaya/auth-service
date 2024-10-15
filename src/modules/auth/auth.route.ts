@@ -15,6 +15,11 @@ router.post(
   RequestValidator.validate(LoginDto),
   controller.login
 );
+router.get(
+  '/auth/groups/:username',
+  rateLimit({ windowMs, limit: 25 }),
+  controller.groups
+);
 
 router.get('/auth/logout', verifyJwtToken, controller.logout);
 

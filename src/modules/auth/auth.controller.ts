@@ -38,6 +38,27 @@ export default class AuthController extends Api {
    * @param res
    * @param next
    */
+  public groups = async (
+    req: Request,
+    res: CustomResponse<LoginResDto>,
+    next: NextFunction
+  ) => {
+    try {
+      const value = await this.authService.groups(req.params.username).catch((e) => {
+        throw e;
+      });
+      this.send(res, value, HttpStatusCode.Ok);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   *
+   * @param req
+   * @param res
+   * @param next
+   */
   public logout = async (
     req: Request,
     res: CustomResponse<LogoutResDto>,

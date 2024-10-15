@@ -41,7 +41,6 @@ interface ILdap {
   ouSearch: string;
   username: string;
   password: string;
-  createdBy: number;
   createdAt: Date;
   usePlain: boolean;
   isDefault: boolean;
@@ -92,7 +91,6 @@ const ldap: ILdap = {
   ouSearch: 'Special Users',
   username: 'chb0030',
   password: 'Chb$2018',
-  createdBy: 1,
   createdAt: new Date(),
   usePlain: true,
   isDefault: true,
@@ -327,7 +325,6 @@ async function buildMatrix(
 const env = process.env.NODE_ENV;
 const dbUrl = process.env.DATABASE_URL;
 
-// void main()
 if (env === 'development' && dbUrl && /[a-z]+@localhost:[a-z]+/i.test(dbUrl))
   void main();
 else logger.info(`only development env can do a seed process`);
