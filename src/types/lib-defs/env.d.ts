@@ -31,6 +31,8 @@ declare global {
       REDIS_PORT: string;
       REDIS_USERNAME: string;
       REDIS_PASSWORD: string;
+
+      MARKETPLACE_API_URL: string;
     }
   }
 }

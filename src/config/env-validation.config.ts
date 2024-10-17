@@ -28,7 +28,9 @@ const envValidationConfig = {
   REDIS_HOST: str({ default: 'localhost' }),
   REDIS_PORT: num({ default: 6379 }),
   REDIS_USERNAME: str(),
-  REDIS_PASSWORD: str()
+  REDIS_PASSWORD: str(),
+
+  MARKETPLACE_API_URL: str(),
 };
 
 export default envValidationConfig;

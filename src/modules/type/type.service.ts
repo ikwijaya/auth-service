@@ -75,11 +75,6 @@ export default class TypeService extends Service {
           flag: true,
           note: true,
           recordStatus: true,
-          Users: {
-            select: {
-              username: true,
-            },
-          },
           createdAt: true,
           updatedAt: true,
           createdUser: {
@@ -160,18 +155,6 @@ export default class TypeService extends Service {
               },
             },
           },
-          Users: {
-            select: {
-              username: true,
-              fullname: true,
-              email: true,
-              group: {
-                select: {
-                  name: true,
-                },
-              },
-            },
-          },
           createdAt: true,
           updatedAt: true,
           createdUser: {
@@ -222,10 +205,6 @@ export default class TypeService extends Service {
       diEditOleh: e.updatedUser?.username
         ? e.updatedUser.username
         : e.createdUser.username,
-      anggota: e.Users.map(
-        (a) =>
-          a.group?.name + ` (` + (a.fullname ?? '') + ' - ' + a.username + ')'
-      ).join(', '),
       matriks: flattenMenu(
         e.Access.map((a) => ({
           roleValue: a.roleValue,
@@ -256,11 +235,6 @@ export default class TypeService extends Service {
           id: true,
           name: true,
           mode: true,
-          Users: {
-            select: {
-              username: true,
-            },
-          },
           createdAt: true,
           updatedAt: true,
           createdUser: {
@@ -521,12 +495,8 @@ export default class TypeService extends Service {
     auth: IUserAccount,
     id: number
   ): Promise<IApiError | IMessages> {
-    const checks = await prisma.user
-      .findFirst({ where: { typeId: id } })
-      .catch((e) => {
-        throw e;
-      });
-    if (checks)
+    const check = await prisma.userGroup.findMany({ where: { typeId: id, actionCode: 'APPROVED', recordStatus: 'A' } }).catch(e => { throw e })
+    if (check.length > 0)
       throw {
         rawErrors: ['Peran masih digunakan oleh beberapa User'],
       } as IApiError;

@@ -263,3 +263,12 @@ model Options {
   createdAt    DateTime @default(now())
   recordStatus String   @default("A")
 }
+
+model RateLimit {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  createdAt DateTime
+  device    String?
+  ipAddress String?
+  apiKey    String?
+}

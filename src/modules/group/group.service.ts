@@ -127,11 +127,6 @@ export default class GroupService extends Service {
         select: {
           id: true,
           name: true,
-          User: {
-            select: {
-              username: true,
-            },
-          },
           createdAt: true,
           updatedAt: true,
           createdUser: {
@@ -156,7 +151,6 @@ export default class GroupService extends Service {
       diEditOleh: e.updatedUser?.username
         ? e.updatedUser.username
         : e.createdUser.username,
-      anggota: e.User.map((e) => e.username).join(', '),
     }));
 
     return data;
@@ -317,12 +311,8 @@ export default class GroupService extends Service {
     auth: IUserAccount,
     id: number
   ): Promise<IApiError | IMessages> {
-    const checks = await prisma.user
-      .findFirst({ where: { groupId: id } })
-      .catch((e) => {
-        throw e;
-      });
-    if (checks)
+    const check = await prisma.userGroup.findMany({ where: { groupId: id, actionCode: 'APPROVED', recordStatus: 'A' } }).catch(e => { throw e })
+    if (check.length > 0) 
       throw {
         rawErrors: ['Group masih digunakan oleh beberapa user'],
       } as IApiError;
