@@ -23,7 +23,8 @@ export const verifyMinimal = async (
   next: NextFunction
 ) => {
   const { headers } = req;
-  const token = headers.token;
+  const authorization = headers['authorization'];
+  const token = authorization?.split(' ')[1]
 
   if (!token)
     res
@@ -86,7 +87,8 @@ export const verifyAccount = async (
 ) => {
   const method: string = req.method;
   const { headers } = req;
-  const token = headers.token as string | undefined;
+  const authorization = headers['authorization'];
+  const token = authorization?.split(' ')[1]
   const formId = headers.formid as string | undefined;
 
   if (!token)
