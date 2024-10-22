@@ -4,6 +4,7 @@ import { HttpStatusCode } from 'axios';
 import { type IApiError } from '@/lib/errors';
 import prisma from '@/lib/prisma';
 import { type IJwtVerify, type IUserAccount } from '@/dto/common.dto';
+import IORedis from 'ioredis';
 import {
   AUTH_FAIL_00,
   AUTH_FAIL_01,
@@ -17,7 +18,7 @@ import {
  * @param res
  * @param next
  */
-export const verifyJwtToken = async (
+export const verifyMinimal = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -166,6 +167,7 @@ const fetchUAC = async (
   formId: undefined | string,
   groupId: number
 ): Promise<IKickLogin> => {
+  let isActive: null | { id: number; userId: number } | string = null
   const getUser = await prisma.user
     .findFirst({
       select: {
@@ -211,14 +213,23 @@ const fetchUAC = async (
     }
   }).catch(e => { throw e })
 
-  const isActive = await prisma.session.findFirst({
-    where: { recordStatus: 'A', token, userId: id },
-  });
-
-  if (!isActive) return { relogin: true } as IKickLogin;
   if (!getUser) return { relogin: false } as IKickLogin;
   if (!getUserGroup) return { relogin: false } as IKickLogin;
+  if (!process.env.REDIS_HOST) {
+    isActive = await prisma.session.findFirst({
+      select: { id: true, userId: true },
+      where: { recordStatus: 'A', token, userId: id },
+    });
+  } else {
+    const connection = new IORedis({
+      host: process.env.REDIS_HOST,
+      port: parseInt(process.env.REDIS_PORT)
+    })
 
+    isActive = await connection.get("sid_" + getUser?.username)
+  }
+
+  if (!isActive) return { relogin: true } as IKickLogin;
   const user: IUserAccount = {
     id: id,
     userId: getUser.id,

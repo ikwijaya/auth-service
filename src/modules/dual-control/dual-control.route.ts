@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import Controller from './dual-control.controller';
-import { verifyAccount, verifyJwtToken } from '@/middlewares/auth';
+import { verifyAccount } from '@/middlewares/auth';
 import RequestValidator from '@/middlewares/request-validator';
 import { EmailResponderDto } from '@/dto/checker.dto';
 import MatrixValidator from '@/middlewares/matrix-validator';
@@ -11,7 +11,6 @@ const controller = new Controller();
 
 router.get(
   '/dual-control/checker/:page_id',
-  verifyJwtToken,
   verifyAccount,
   MatrixValidator.validate(ROLE_ACTION.read),
   controller.findChecker
@@ -19,7 +18,6 @@ router.get(
 
 router.post(
   '/dual-control/email-responder',
-  verifyJwtToken,
   verifyAccount,
   MatrixValidator.validate(ROLE_ACTION.read),
   RequestValidator.validate(EmailResponderDto),

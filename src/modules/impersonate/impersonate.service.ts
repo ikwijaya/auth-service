@@ -12,10 +12,10 @@ import { ILogQMes } from '@/dto/queue.dto';
 export default class ImpersonateService extends Service {
 
     /**
-     * 
-     * @param auth 
-     * @param groupId 
-     * @returns 
+     *
+     * @param auth
+     * @param groupId
+     * @returns
      */
     public async impersonate(auth: IUserAccount, groupId: number) {
         /// find group
@@ -78,8 +78,8 @@ export default class ImpersonateService extends Service {
     }
 
     /**
-     * 
-     * @param auth 
+     *
+     * @param auth
      */
     public async groups(auth: IUserAccount) {
         /**
@@ -95,7 +95,7 @@ export default class ImpersonateService extends Service {
             FROM    "UserGroup" as b
             WHERE   b."actionCode" = 'APPROVED' AND b."recordStatus" = 'A'
             GROUP BY b."userId", b."groupId"
-            ) as ib ON a."userId" = b."userId" AND a."groupId" = b."groupId" AND a."checkedAt" = b."maxdate"
+            ) as ib ON a."userId" = ib."userId" AND a."groupId" = ib."groupId" AND a."checkedAt" = ib."maxdate"
             WHERE   a."recordStatus" = 'A' AND a."actionCode" = 'APPROVED';
         `
 
@@ -138,8 +138,8 @@ export default class ImpersonateService extends Service {
     }
 
     /**
-     * 
-     * @param auth 
+     *
+     * @param auth
      */
     private async relogin(auth: IUserAccount, token: string) {
         return await prisma.$transaction(async (tx) => {

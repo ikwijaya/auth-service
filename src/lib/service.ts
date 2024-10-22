@@ -48,8 +48,8 @@ abstract class Service {
         FROM    "UserGroup" as b
         WHERE   b."actionCode" = 'APPROVED' AND b."recordStatus" = 'A'
         GROUP BY b."userId", b."groupId"
-      ) as ib ON a."userId" = b."userId" AND a."groupId" = b."groupId" AND a."checkedAt" = b."maxdate"
-      WHERE   a."typeId" IN (${Prisma.join(type.map(e => e.typeId).filter(this.notEmpty))}) 
+      ) as ib ON a."userId" = ib."userId" AND a."groupId" = ib."groupId" AND a."checkedAt" = ib."maxdate"
+      WHERE   a."typeId" IN (${Prisma.join(type.map(e => e.typeId).filter(this.notEmpty))})
               AND a."recordStatus" = 'A' AND a."actionCode" = 'APPROVED';
     `
 
@@ -113,8 +113,8 @@ abstract class Service {
         FROM    "UserGroup" as b
         WHERE   b."actionCode" = 'APPROVED' AND b."recordStatus" = 'A'
         GROUP BY b."userId", b."groupId"
-      ) as ib ON a."userId" = b."userId" AND a."groupId" = b."groupId" AND a."checkedAt" = b."maxdate"
-      WHERE   a."typeId" IN (${Prisma.join(typeIds)}) 
+      ) as ib ON a."userId" = ib."userId" AND a."groupId" = ib."groupId" AND a."checkedAt" = ib."maxdate"
+      WHERE   a."typeId" IN (${Prisma.join(typeIds)})
               AND a."recordStatus" = 'A' AND a."actionCode" = 'APPROVED';
     `
 
@@ -134,8 +134,8 @@ abstract class Service {
   }
 
   /**
-   * 
-   * @param data 
+   *
+   * @param data
    */
   public async addLog(data: { flag: string, payload: ILogQMes }[]) {
     if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
@@ -163,8 +163,8 @@ abstract class Service {
   }
 
   /**
-   * 
-   * @param data 
+   *
+   * @param data
    */
   public async addNotif(data: { flag: string, payload: INotifQMes }[]) {
     if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
@@ -189,6 +189,65 @@ abstract class Service {
     })
     data.forEach(e => queue.add(`not-${e.flag}-${now}`, e.payload));
     queue.on('error', (err) => logger.error(`${Service.name} addNotif: ${err.message}`));
+  }
+
+  /**
+   *
+   * @param key
+   * @param value
+   * @param seconds num of expires in second
+   * @returns
+   */
+  public async setRedisKV(key: string, value: string | number | Buffer, seconds: number) {
+    if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
+
+    const connection = new IORedis({
+      host: process.env.REDIS_HOST,
+      port: parseInt(process.env.REDIS_PORT)
+    })
+
+    await connection.set(key, value);
+    await connection.expire(key, seconds);
+  }
+
+  /**
+   *
+   * @param key
+   */
+  public async getRedisK(key: string) {
+    if (!process.env.REDIS_HOST) {
+      logger.warn(`<no-redis-defined>`)
+      return null
+    }
+
+    const connection = new IORedis({
+      host: process.env.REDIS_HOST,
+      port: parseInt(process.env.REDIS_PORT)
+    })
+
+    const value = await connection.get(key)
+    return value
+  }
+
+  /**
+   *
+   * @param key
+   * @returns
+   */
+  public async delRedisK(key: string) {
+    if (!process.env.REDIS_HOST) {
+      logger.warn(`<no-redis-defined>`)
+      return null
+    }
+
+    const connection = new IORedis({
+      host: process.env.REDIS_HOST,
+      port: parseInt(process.env.REDIS_PORT)
+    })
+
+    const value = await connection.get(key)
+    if (!value) return null
+    await connection.del(key);
   }
 }
 

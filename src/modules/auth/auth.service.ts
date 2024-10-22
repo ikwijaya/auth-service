@@ -18,6 +18,7 @@ import {
 import environment from '@/lib/environment';
 import logger from '@/lib/logger';
 import { ILogQMes } from '@/dto/queue.dto';
+import { convertToSeconds } from '@/utils/helper';
 const maxAttempt: number = 5;
 
 interface ILdapAttr {
@@ -30,12 +31,12 @@ interface ILdapAttr {
 export default class AuthService extends Service {
 
   /**
-   * 
-   * @param obj 
-   * @param username 
-   * @param password 
-   * @param ldap 
-   * @param attempt 
+   *
+   * @param obj
+   * @param username
+   * @param password
+   * @param ldap
+   * @param attempt
    */
   private async binding(
     obj: {
@@ -201,9 +202,9 @@ export default class AuthService extends Service {
   }
 
   /**
-   * 
+   *
    * @param obj
-   * @returns 
+   * @returns
    */
   private async findUser(obj: LoginDto) {
     const user = await prisma.user
@@ -243,9 +244,9 @@ export default class AuthService extends Service {
   }
 
   /**
-   * 
-   * @param obj 
-   * @returns 
+   *
+   * @param obj
+   * @returns
    */
   private async withoutGroup(obj: LoginDto) {
     const user = await this.findUser(obj);
@@ -268,7 +269,6 @@ export default class AuthService extends Service {
         where: {
           userId: user.id,
           recordStatus: 'A',
-          isDefault: true,
           actionCode: 'APPROVED'
         },
         orderBy: {
@@ -281,8 +281,8 @@ export default class AuthService extends Service {
   }
 
   /**
-   * 
-   * @param obj 
+   *
+   * @param obj
    */
   public async login(obj: LoginDto) {
     const { user, userGroup } = await this.withoutGroup(obj).catch(e => { throw e })
@@ -365,6 +365,7 @@ export default class AuthService extends Service {
           },
         });
 
+        await this.setRedisKV("sid_" + obj.username, token, convertToSeconds(process.env.JWT_EXPIRE));
         const payload: ILogQMes = {
           serviceName: AuthService.name,
           action: 'login',
@@ -393,8 +394,8 @@ export default class AuthService extends Service {
   }
 
   /**
-   * 
-   * @param username 
+   *
+   * @param username
    */
   public async groups(username: string) {
     const user = await prisma.user
@@ -430,7 +431,7 @@ export default class AuthService extends Service {
         FROM    "UserGroup" as b
         WHERE   b."actionCode" = 'APPROVED' AND b."recordStatus" = 'A'
         GROUP BY b."userId", b."groupId"
-      ) as ib ON a."userId" = b."userId" AND a."groupId" = b."groupId" AND a."checkedAt" = b."maxdate"
+      ) as ib ON a."userId" = ib."userId" AND a."groupId" = ib."groupId" AND a."checkedAt" = ib."maxdate"
       WHERE   a."recordStatus" = 'A' AND a."actionCode" = 'APPROVED';
     `
 
@@ -497,6 +498,7 @@ export default class AuthService extends Service {
           throw e;
         });
 
+      await this.delRedisK("sid_" + user.user.username)
       const payload: ILogQMes = {
         serviceName: AuthService.name,
         action: 'logout',

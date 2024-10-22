@@ -36,3 +36,36 @@ export const envFileNotFoundError = (key: CommonEnvKeys): string => {
     \r${divider}
   `;
 };
+
+/**
+ *
+ * @param expiryValue
+ * @returns
+ */
+export function convertToSeconds(expiryValue: string): number {
+  // Define conversion factors
+  const conversionFactors: { [key: string]: number } = {
+    'd': 86400,  // 1 day = 86400 seconds
+    'h': 3600,   // 1 hour = 3600 seconds
+    'm': 60,     // 1 minute = 60 seconds
+    's': 1       // 1 second = 1 second
+  };
+
+  // Initialize total seconds
+  let totalSeconds = 0;
+
+  // Split the input string by commas and process each part
+  const parts = expiryValue.split(',');
+  for (const part of parts) {
+    const trimmedPart = part.trim();
+    const unit = trimmedPart.charAt(trimmedPart.length - 1);
+    const value = parseInt(trimmedPart.slice(0, -1), 10);
+
+    // Check if the unit is valid and accumulate total seconds
+    if (conversionFactors[unit]) {
+      totalSeconds += value * conversionFactors[unit];
+    }
+  }
+
+  return totalSeconds;
+}

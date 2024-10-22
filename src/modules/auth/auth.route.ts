@@ -2,7 +2,7 @@ import { Router } from 'express';
 import Controller from './auth.controller';
 import { LoginDto } from '@/dto/auth.dto';
 import RequestValidator from '@/middlewares/request-validator';
-import { verifyAccount, verifyJwtToken } from '@/middlewares/auth';
+import { verifyAccount } from '@/middlewares/auth';
 import { rateLimit } from '@/lib/security';
 
 const windowMs = 5 * 60 * 1000; /// 15 minutes
@@ -21,6 +21,6 @@ router.get(
   controller.groups
 );
 
-router.get('/auth/logout', verifyJwtToken, controller.logout);
+router.get('/auth/logout', verifyAccount, controller.logout);
 
 export default router;
