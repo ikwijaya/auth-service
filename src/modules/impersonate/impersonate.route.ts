@@ -7,7 +7,7 @@ const windowMs = 5 * 60 * 1000; /// 5 minutes
 const router: Router = Router();
 const controller = new Controller();
 
-router.get(
+router.put(
   '/impersonate/:group_id',
   rateLimit({ windowMs, limit: 10 }),
   verifyAccount,

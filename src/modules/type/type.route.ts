@@ -40,7 +40,7 @@ router.post(
   RequestValidator.validate(CreateTypeDto),
   controller.create
 );
-router.patch(
+router.put(
   '/master/type/:id',
   verifyAccount,
   MatrixValidator.validate(ROLE_ACTION.update),

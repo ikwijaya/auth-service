@@ -40,7 +40,7 @@ router.post(
   RequestValidator.validate(CreateGroupDto),
   controller.create
 );
-router.patch(
+router.put(
   '/master/group/:id',
   verifyAccount,
   MatrixValidator.validate(ROLE_ACTION.update),
