@@ -251,7 +251,12 @@ async function seed(): Promise<void> {
       name: e.parent ? `${e.parent.name} > ${e.name}` : e.name,
       isReadOnly: e.isReadOnly,
       roles: [
+        { roleAction: 'C', roleValue: true, roleName: 'CREATE' },
         { roleAction: 'R', roleValue: true, roleName: 'READ' },
+        { roleAction: 'U', roleValue: true, roleName: 'UPDATE' },
+        { roleAction: 'D', roleValue: true, roleName: 'DELETE' },
+        { roleAction: 'A', roleValue: true, roleName: 'UPLOAD' },
+        { roleAction: 'B', roleValue: true, roleName: 'DOWNLOAD' },
       ] as IRole[],
     }));
 
@@ -290,7 +295,7 @@ async function buildMatrix(
   typeId: number,
   userId: number
 ): Promise<IAccessMatrix[]> {
-  const roles: string[] = ['R'];
+  const roles: string[] = ['C', 'R', 'U', 'D', 'A', 'B'];
   const formReadOnly = items
     .map((e) => (e.isReadOnly ? e.id : null))
     .filter((e) => e);
@@ -324,7 +329,8 @@ async function buildMatrix(
 
 const env = process.env.NODE_ENV;
 const dbUrl = process.env.DATABASE_URL;
+const allow = dbUrl && /@localhost\b/i.test(dbUrl)
 
-if (env === 'development' && dbUrl && /[a-z]+@localhost:[a-z]+/i.test(dbUrl))
+if (env === 'development' && dbUrl && allow)
   void main();
 else logger.info(`only development env can do a seed process`);

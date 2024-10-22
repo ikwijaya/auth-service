@@ -387,7 +387,7 @@ export default class AuthService extends Service {
       });
 
     return {
-      accessToken: token,
+      accessToken: 'Bearer ' + token,
       expiresIn: process.env.JWT_EXPIRE,
       groupId: obj.groupId
     } as LoginResDto;

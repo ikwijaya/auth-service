@@ -35,6 +35,9 @@ export default class MatrixValidator {
               throw e;
             });
 
+            logger.info('matrix ' + auth.username)
+            logger.info(JSON.stringify(matrix.userMatrix))
+
             if (matrix.isAllow && matrix.userMatrix) {
               req.userMatrix = matrix.userMatrix;
               next();

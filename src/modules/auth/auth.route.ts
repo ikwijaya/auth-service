@@ -42,7 +42,7 @@ router.post(
 /**
  * GET /v1/auth/groups/{username}
  * @summary api for call user groups
- * @param {string} id.path
+ * @param {string} username.path
  * @return {object} 200 - success response - application/json
  */
 router.get(
