@@ -3,6 +3,8 @@ import { type Request, type Response } from 'express';
 import mcache from 'memory-cache';
 import environment from './environment';
 import logger from './logger';
+import { Queue, QueueEvents } from 'bullmq'
+import IORedis from 'ioredis';
 
 /**
  * `Api` Represents an abstract base class for common expressJS API operations.
@@ -49,6 +51,51 @@ abstract class Api {
    */
   public async wait<T>(ms: number, value: T) {
     return await new Promise<T>((resolve) => setTimeout(resolve, ms, value));
+  }
+
+  /**
+   *
+   * @param res
+   * @param username
+   * @param body
+   * @param statusCode
+   * @param queueName
+   */
+  public async sendQueueEvents<T>(
+    res: Response,
+    username: string,
+    body: T,
+    statusCode: number = HttpStatusCode.Ok,
+    queueName: string
+  ) {
+    const connection = new IORedis({
+      host: process.env.REDIS_HOST,
+      port: parseInt(process.env.REDIS_PORT),
+      maxRetriesPerRequest: null
+    });
+
+    const queue = new Queue(queueName, {
+      connection,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: { count: 1000 },
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 1000
+        }
+      }
+    });
+
+    const queueEvents = new QueueEvents(queueName, { connection, autorun: true })
+    const now: number = Date.now()
+    const jobId: string = username + '_' + now;
+    queue.add(jobId, body, { jobId });
+    queueEvents.on('completed', async (value) => {
+      logger.info("jobId: " + value.jobId)
+      logger.info("returnvalue: " + JSON.stringify(value.returnvalue))
+      if (value.jobId === jobId) return res.status(statusCode).json(value.returnvalue);
+    });
   }
 }
 
