@@ -44,7 +44,7 @@ export const verifyMinimal = async (
         else {
           const ipAddress: string | undefined = req.headers['x-forwarded-for'] as string | undefined ?? req.socket.remoteAddress;
           const userAgent: string | undefined = req.headers['user-agent']
-          const authValidate = new AuthValidate('5m', token as string);
+          const authValidate = new AuthValidate(process.env.REDIS_SID_TTL, token as string);
           const _verify: IJwtVerify = await authValidate.minValidate(verify).catch((e) => {
             throw e;
           });
@@ -54,20 +54,15 @@ export const verifyMinimal = async (
           delete _verify.iat;
           delete _verify.exp;
 
-          if (verify.type === 'app-cms') {
-            const _token = Jwt.sign(
-              _verify,
-              process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
-              { expiresIn: process.env.JWT_EXPIRE }
-            );
+          const _token = Jwt.sign(
+            _verify,
+            process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
+            { expiresIn: process.env.JWT_EXPIRE }
+          );
 
-            req.jwtToken = _token;
-            req.jwtVerify = _verify;
-            next();
-          } else
-            throw {
-              rawErrors: [TOKEN_FAIL_02],
-            } as IApiError;
+          req.jwtToken = _token;
+          req.jwtVerify = _verify;
+          next();
         }
       }
     );

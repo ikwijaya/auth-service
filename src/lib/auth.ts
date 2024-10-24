@@ -7,10 +7,10 @@ import logger from "./logger";
 export class AuthValidate {
   private token: string
   private userAccount: IUserAccount | undefined;
-  public expiresIn: string = '3m'
+  public expiresIn: string = '7m'
   private isActive: null | { id: number; userId: number } | string = null
 
-  constructor(expiresIn: string = '3m', token: string) {
+  constructor(expiresIn: string = '7m', token: string) {
     this.expiresIn = expiresIn
     this.token = token
   }
@@ -112,7 +112,7 @@ export class AuthValidate {
    *
    * @param key
    */
-  private async getRedis(id: number, formId: undefined | string, groupId: number, username: string) {
+  private async getRedis(username: string) {
     const value = await this.connection.get("uac_" + username);
     if (value) this.userAccount = JSON.parse(value);
   }
@@ -170,7 +170,7 @@ export class AuthValidate {
         if (!this.isActive) return { relogin: true } as IKickLogin;
 
         // checking uac in redis
-        await this.getRedis(id, formId, groupId, username).catch(e => { throw e })
+        await this.getRedis(username).catch(e => { throw e })
         if (this.userAccount) {
           if (formId) this.userAccount.formId = Number(formId);
 
