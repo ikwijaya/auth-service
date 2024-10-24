@@ -1,8 +1,8 @@
 import { type NextFunction, type Request } from 'express';
 import { type CustomResponse } from '@/types/common.type';
-import Api, { IWorkerApi } from '@/lib/api';
+import Api from '@/lib/api';
 import Jwt from 'jsonwebtoken';
-import { IJwtCommunicator } from '@/dto/common.dto';
+import { IJwtCommunicator, IWorkerApi } from '@/dto/common.dto';
 
 export default class LogController extends Api {
 
@@ -22,7 +22,7 @@ export default class LogController extends Api {
       delete jwtVerify.iat
       delete jwtVerify.exp
 
-      const jwtCommunicator: IJwtCommunicator = { userMatrix: req.userMatrix, jwtVerify: req.jwtVerify }
+      const jwtCommunicator: IJwtCommunicator = { userMatrix: req.userMatrix, ...jwtVerify }
       const token = Jwt.sign(jwtCommunicator, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE })
       const payload: IWorkerApi = {
         method: req.method,
@@ -54,7 +54,7 @@ export default class LogController extends Api {
       delete jwtVerify.iat
       delete jwtVerify.exp
 
-      const jwtCommunicator: IJwtCommunicator = { userMatrix: req.userMatrix, jwtVerify: req.jwtVerify }
+      const jwtCommunicator: IJwtCommunicator = { userMatrix: req.userMatrix, ...jwtVerify }
       const token = Jwt.sign(jwtCommunicator, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE })
       const payload: IWorkerApi = {
         method: req.method,

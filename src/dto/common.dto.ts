@@ -94,8 +94,7 @@ export interface IJwtVerify {
   iat?: number;
 }
 
-export interface IJwtCommunicator {
-  jwtVerify: IJwtVerify;
+export interface IJwtCommunicator extends IJwtVerify {
   userMatrix: IUserMatrix;
 }
 
