@@ -11,7 +11,14 @@ router.get(
   '/applogs',
   verifyAccount,
   MatrixValidator.validate(ROLE_ACTION.read),
-  controller.appLogs
+  controller.load
+);
+
+router.post(
+  '/applog',
+  verifyAccount,
+  MatrixValidator.validate(ROLE_ACTION.read),
+  controller.add
 );
 
 export default router;
