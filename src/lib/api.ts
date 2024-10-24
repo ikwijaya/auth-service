@@ -5,13 +5,8 @@ import environment from './environment';
 import logger from './logger';
 import { Queue, QueueEvents } from 'bullmq'
 import IORedis from 'ioredis';
+import { IWorkerApi } from '@/dto/common.dto';
 
-export interface IWorkerApi {
-  method: string,
-  path: string;
-  body: unknown;
-  headers: {}
-}
 
 /**
  * `Api` Represents an abstract base class for common expressJS API operations.

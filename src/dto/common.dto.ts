@@ -197,3 +197,10 @@ export class RejectDto {
   })
   actionNote: string;
 }
+
+export interface IWorkerApi {
+  method: string,
+  path: string;
+  body: unknown;
+  headers: Record<string, unknown>
+}
