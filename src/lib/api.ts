@@ -6,16 +6,8 @@ import logger from './logger';
 import { Queue, QueueEvents } from 'bullmq'
 import IORedis from 'ioredis';
 
-export enum WorkerMethod {
-  GET = 'GET',
-  POST = 'POST',
-  PUT = 'PUT',
-  PATCH = 'PATCH',
-  DELETE = 'DELETE'
-}
-
 export interface IWorkerApi {
-  method: WorkerMethod,
+  method: string,
   path: string;
   body: unknown;
   headers: {}
