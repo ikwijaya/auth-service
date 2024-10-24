@@ -14,6 +14,11 @@ import prismaClient from '@/lib/prisma';
 import environment from '@/lib/environment';
 import chalk from 'chalk';
 import { printAppInfo } from './utils/print-app-info';
+import { ExpressAdapter } from '@bull-board/express';
+import { createBullBoard } from '@bull-board/api';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { Queue } from 'bullmq';
+import IORedis from 'ioredis';
 
 const chalkInit = chalk.yellow
 const initText = chalkInit(`RUNNING IN <${environment.env}> MODE`)
@@ -32,6 +37,7 @@ class App {
     this.setRoutes();
     this.setErrorHandler();
     this.initializeDocs();
+    this.bullMonitor();
 
     const port: number = parseInt(process.env.PORT)
     printAppInfo(port, environment.env, process.env.APP_BASE_URL, process.env.API_BASE_URL);
@@ -65,6 +71,34 @@ class App {
 
   public async connectPrisma(): Promise<void> {
     await prismaClient.$connect();
+  }
+
+  private async bullMonitor(): Promise<void> {
+    if (!process.env.REDIS_HOST) undefined
+    const connection = new IORedis({
+      host: process.env.REDIS_HOST,
+      port: parseInt(process.env.REDIS_PORT),
+      maxRetriesPerRequest: null
+    });
+    const createQueue = (name: string) => new Queue(name, { connection });
+    const adapter = new ExpressAdapter()
+    adapter.setBasePath('/monitoring');
+    createBullBoard({
+      queues: [
+        new BullMQAdapter(createQueue(process.env.LOG_SERVICE_NAME), { readOnlyMode: true }),
+        new BullMQAdapter(createQueue(process.env.NOTIF_SERVICE_NAME), { readOnlyMode: true }),
+        new BullMQAdapter(createQueue(process.env.FILE_SERVICE_NAME), { readOnlyMode: true }),
+        new BullMQAdapter(createQueue(process.env.MARKETPLACE_SERVICE_NAME), { readOnlyMode: true }),
+        new BullMQAdapter(createQueue(process.env.KNOWLEDGE_SERVICE_NAME), { readOnlyMode: true }),
+        new BullMQAdapter(createQueue(process.env.SCHEDULER_SERVICE_NAME), { readOnlyMode: true }),
+      ], serverAdapter: adapter,
+      options: {
+        uiConfig: {
+          boardTitle: 'Monitoring'
+        }
+      }
+    })
+    this.express.use('/monitoring', adapter.getRouter())
   }
 }
 
