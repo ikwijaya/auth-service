@@ -6,6 +6,21 @@ import logger from './logger';
 import { Queue, QueueEvents } from 'bullmq'
 import IORedis from 'ioredis';
 
+export enum WorkerMethod {
+  GET = 'GET',
+  POST = 'POST',
+  PUT = 'PUT',
+  PATCH = 'PATCH',
+  DELETE = 'DELETE'
+}
+
+export interface IWorkerApi {
+  method: WorkerMethod,
+  path: string;
+  body: unknown;
+  headers: Record<string, unknown>
+}
+
 /**
  * `Api` Represents an abstract base class for common expressJS API operations.
  *  Inherit this class to use the helper functions.
@@ -57,16 +72,14 @@ abstract class Api {
    *
    * @param res
    * @param username
-   * @param body
-   * @param statusCode
    * @param queueName
+   * @param payload
    */
   public async sendQueueEvents<T>(
     res: Response,
     username: string,
-    body: T,
-    statusCode: number = HttpStatusCode.Ok,
-    queueName: string
+    queueName: string,
+    payload: IWorkerApi
   ) {
     const connection = new IORedis({
       host: process.env.REDIS_HOST,
@@ -90,11 +103,12 @@ abstract class Api {
     const queueEvents = new QueueEvents(queueName, { connection, autorun: true })
     const now: number = Date.now()
     const jobId: string = username + '_' + now;
-    queue.add(jobId, body, { jobId });
+    queue.add(jobId, payload, { jobId });
+    queueEvents.on('progress', (args) => logger.info("JobId: " + args.jobId + " progressing"))
     queueEvents.on('completed', async (value) => {
       logger.info("jobId: " + value.jobId)
       logger.info("returnvalue: " + JSON.stringify(value.returnvalue))
-      if (value.jobId === jobId) return res.status(statusCode).json(value.returnvalue);
+      if (value.jobId === jobId) return res.json(value.returnvalue);
     });
   }
 }

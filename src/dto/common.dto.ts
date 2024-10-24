@@ -94,6 +94,11 @@ export interface IJwtVerify {
   iat?: number;
 }
 
+export interface IJwtCommunicator {
+  jwtVerify: IJwtVerify;
+  userMatrix: IUserMatrix;
+}
+
 export interface IPrismaPagination {
   take: number;
   skip: number;
