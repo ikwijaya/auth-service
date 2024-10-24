@@ -33,6 +33,14 @@ declare global {
       REDIS_PASSWORD: string;
 
       MARKETPLACE_API_URL: string;
+
+      // for queueEvents
+      LOG_SERVICE_NAME: string;
+      NOTIF_SERVICE_NAME: string;
+      SCHEDULER_SERVICE_NAME: string;
+      FILE_SERVICE_NAME: string;
+      MARKETPLACE_SERVICE_NAME: string;
+      KNOWLEDGE_SERVICE_NAME: string;
     }
   }
 }

@@ -8,10 +8,10 @@ const router: Router = Router();
 const controller = new Controller();
 
 router.get(
-  '/sample-events',
+  '/applogs',
   verifyAccount,
   MatrixValidator.validate(ROLE_ACTION.read),
-  controller.sampleEvents
+  controller.appLogs
 );
 
 export default router;

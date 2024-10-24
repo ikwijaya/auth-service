@@ -141,6 +141,7 @@ export const verifyAccount = async (
                 payload.device = userAgent;
 
                 req.userAccount = payload;
+                req.jwtVerify = verify;
                 next();
               }
             }

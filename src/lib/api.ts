@@ -18,7 +18,7 @@ export interface IWorkerApi {
   method: WorkerMethod,
   path: string;
   body: unknown;
-  headers: Record<string, unknown>
+  headers: {}
 }
 
 /**
@@ -87,6 +87,8 @@ abstract class Api {
       maxRetriesPerRequest: null
     });
 
+    const now: number = Date.now()
+    const jobId: string = username + '_' + now;
     const queue = new Queue(queueName, {
       connection,
       defaultJobOptions: {
@@ -100,9 +102,8 @@ abstract class Api {
       }
     });
 
+    logger.info("create Queue" + queueName + " with jobId: " + jobId)
     const queueEvents = new QueueEvents(queueName, { connection, autorun: true })
-    const now: number = Date.now()
-    const jobId: string = username + '_' + now;
     queue.add(jobId, payload, { jobId });
     queueEvents.on('progress', (args) => logger.info("JobId: " + args.jobId + " progressing"))
     queueEvents.on('completed', async (value) => {

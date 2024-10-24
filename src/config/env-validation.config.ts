@@ -31,6 +31,13 @@ const envValidationConfig = {
   REDIS_PASSWORD: str(),
 
   MARKETPLACE_API_URL: str(),
+
+  LOG_SERVICE_NAME: str(),
+  NOTIF_SERVICE_NAME: str(),
+  SCHEDULER_SERVICE_NAME: str(),
+  FILE_SERVICE_NAME: str(),
+  MARKETPLACE_SERVICE_NAME: str(),
+  KNOWLEDGE_SERVICE_NAME: str(),
 };
 
 export default envValidationConfig;
