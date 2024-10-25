@@ -8,23 +8,21 @@ const baseDir = path.join(__dirname, '../../');
 const expressJSDocSwaggerConfig = {
   info: {
     version: '1.0.0',
-    title: '⚡️GundalaPetir⚡️',
-    description: 'Api specs for Gundala CMS',
+    title: 'Platform Auth Service',
+    description: 'Swagger',
     license: {
       name: 'MIT',
     },
   },
   security: {
-    BearerAuth: {
+    BasicAuth: {
       type: 'http',
-      scheme: 'bearer',
+      scheme: 'basic',
     },
   },
   baseDir,
   // Glob pattern to find your jsdoc files (multiple patterns can be added in an array)
-  filesPattern: `${baseDir}/src/**/*.route-spec.ts` as string & {
-    _kind?: 'MyString';
-  },
+  filesPattern: baseDir + '/src/**/*.route.ts',
   // URL where SwaggerUI will be rendered
   swaggerUIPath,
   // Expose OpenAPI UI

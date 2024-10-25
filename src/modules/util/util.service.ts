@@ -17,6 +17,8 @@ export default class UtilService {
     auth: IUserAccount,
     username: string
   ): Promise<{ valid: boolean; entries: Entry[] }> {
+    if (!auth.ldapId) throw { rawErrors: ["Error no ldap config found"] } as IApiError
+
     username = username.toLocaleLowerCase();
     const ldap = await prisma.ldap
       .findFirst({
@@ -74,14 +76,7 @@ export default class UtilService {
         ],
       });
 
-      const isExists = await prisma.userView
-        .findFirst({
-          where: { username, actionCode: { in: ['A', 'W'] } },
-        })
-        .catch((e) => {
-          throw e;
-        });
-
+      const isExists = await prisma.user.findFirst({ where: { username } }).catch((e) => { throw e });
       const valid = searchEntries && searchEntries.length > 0 && !isExists;
       if (!valid) {
         const msg: string[] = [];
@@ -134,6 +129,8 @@ export default class UtilService {
     auth: IUserAccount,
     username: string
   ): Promise<{ valid: boolean; entries: Entry[] }> {
+    if (!auth.ldapId) throw { rawErrors: ["Error no ldap config found"] } as IApiError
+    
     const ldap = await prisma.ldap
       .findFirst({
         where: { recordStatus: 'A', id: auth.ldapId },

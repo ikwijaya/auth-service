@@ -41,7 +41,6 @@ interface ILdap {
   ouSearch: string;
   username: string;
   password: string;
-  createdBy: number;
   createdAt: Date;
   usePlain: boolean;
   isDefault: boolean;
@@ -92,7 +91,6 @@ const ldap: ILdap = {
   ouSearch: 'Special Users',
   username: 'chb0030',
   password: 'Chb$2018',
-  createdBy: 1,
   createdAt: new Date(),
   usePlain: true,
   isDefault: true,
@@ -207,25 +205,22 @@ async function seed(): Promise<void> {
   });
 
   await prisma.$transaction(async (tx) => {
-    await tx.user.update({ data: { typeId: 1, ldapId: 1 }, where: { id: 1 } })
+    await tx.user.update({ data: { ldapId: 1 }, where: { id: 1 } })
     const _user = await tx.user
       .findFirst({ where: { id: 1 } })
       .catch(e => { throw e });
 
     if (_user)
-      await tx.userRev.create({
+      await tx.userGroup.create({
         data: {
           userId: _user.id,
           typeId: 1,
-          ldapId: 1,
-          username: _user.username,
-          createdAt: new Date(),
+          groupId: 1,
+          checkedAt: new Date(),
+          checkedBy: 1,
           makedAt: new Date(),
-          rowAction: 'C',
-          sysAction: 'submit',
-          actionNote: 'added by application.seed',
-          actionCode: 'A',
-          checkedAt: new Date()
+          makedBy: 1,
+          actionCode: 'APPROVED'
         }
       }).catch(e => { throw e })
 
@@ -256,7 +251,12 @@ async function seed(): Promise<void> {
       name: e.parent ? `${e.parent.name} > ${e.name}` : e.name,
       isReadOnly: e.isReadOnly,
       roles: [
+        { roleAction: 'C', roleValue: true, roleName: 'CREATE' },
         { roleAction: 'R', roleValue: true, roleName: 'READ' },
+        { roleAction: 'U', roleValue: true, roleName: 'UPDATE' },
+        { roleAction: 'D', roleValue: true, roleName: 'DELETE' },
+        { roleAction: 'A', roleValue: true, roleName: 'UPLOAD' },
+        { roleAction: 'B', roleValue: true, roleName: 'DOWNLOAD' },
       ] as IRole[],
     }));
 
@@ -295,7 +295,7 @@ async function buildMatrix(
   typeId: number,
   userId: number
 ): Promise<IAccessMatrix[]> {
-  const roles: string[] = ['R'];
+  const roles: string[] = ['C', 'R', 'U', 'D', 'A', 'B'];
   const formReadOnly = items
     .map((e) => (e.isReadOnly ? e.id : null))
     .filter((e) => e);
@@ -329,8 +329,8 @@ async function buildMatrix(
 
 const env = process.env.NODE_ENV;
 const dbUrl = process.env.DATABASE_URL;
+const allow = dbUrl && /@localhost\b/i.test(dbUrl)
 
-// void main()
-if (env === 'development' && dbUrl && /[a-z]+@localhost:[a-z]+/i.test(dbUrl))
+if (env === 'development' && dbUrl && allow)
   void main();
 else logger.info(`only development env can do a seed process`);

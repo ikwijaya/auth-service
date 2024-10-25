@@ -1,5 +1,9 @@
+import { ILogQMes, INotifQMes } from '@/dto/queue.dto';
 import logger from './logger';
 import prisma from '@/lib/prisma';
+import { Queue } from 'bullmq';
+import { Prisma } from '@prisma/client';
+import redisConnection from './ioredis';
 
 /**
  * `Api` Represents an abstract base class for common expressJS API operations.
@@ -31,94 +35,37 @@ abstract class Service {
         throw e;
       });
 
-    const users = await prisma.userView
-      .findMany({
-        where: {
-          typeId: { in: type.map((e) => e.typeId).filter(this.notEmpty) },
-          groupId,
-          recordStatus: 'A',
-          actionCode: 'A',
-        },
-        select: {
-          id: true,
-          username: true,
-          email: true,
-          fullname: true,
-          actionCode: true,
-        },
-      })
-      .catch((e) => {
-        throw e;
-      });
-
     /**
-     * because user is on-pending
-     * we must check last peran yg di assign pada user tsb
+     * handle when user status is waiting for approval
+     * thats means this user has assign to some group before
+     * and this user has waiting for new group after
      */
-    interface IUserChecker {
-      id: number;
-      username: string;
-      email: string | null;
-      fullname: string | null;
-      actionCode: string | null;
-    }
+    const findUserGroup: { id: number }[] = await prisma.$queryRaw`
+      SELECT  a."id"
+      FROM    "UserGroup" as a
+      INNER JOIN (
+        SELECT  MAX(b."checkedAt") as "maxdate", b."userId", b."groupId"
+        FROM    "UserGroup" as b
+        WHERE   b."actionCode" = 'APPROVED' AND b."recordStatus" = 'A'
+        GROUP BY b."userId", b."groupId"
+      ) as ib ON a."userId" = ib."userId" AND a."groupId" = ib."groupId" AND a."checkedAt" = ib."maxdate"
+      WHERE   a."typeId" IN (${Prisma.join(type.map(e => e.typeId).filter(this.notEmpty))})
+              AND a."recordStatus" = 'A' AND a."actionCode" = 'APPROVED';
+    `
 
-    const usersIsChange = await prisma.userRev
-      .findMany({
-        where: {
-          recordStatus: 'A',
-          actionCode: 'A',
-          typeId: { in: type.map((e) => e.typeId).filter(this.notEmpty) },
-          groupId,
-          userId: { notIn: users.map((e) => e.id).filter(this.notEmpty) },
-        },
-      })
-      .catch((e) => {
-        throw e;
-      });
+    const userGroup = await prisma.userGroup.findMany({
+      select: {
+        userId: true,
+        groupId: true,
+        typeId: true,
+        user: { select: { username: true, fullname: true, email: true } },
+        group: { select: { name: true } },
+        type: { select: { name: true, mode: true, flag: true } },
+      },
+      where: { groupId, id: { in: findUserGroup.map(e => e.id) } }
+    }).catch(e => { throw e })
 
-    const _u: IUserChecker[] = [];
-    const m = usersIsChange.map(async (e) => {
-      await prisma.userRev
-        .findFirst({
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            fullname: true,
-            actionCode: true,
-            userId: true,
-          },
-          where: { userId: e.userId },
-          orderBy: { makedAt: 'desc' },
-        })
-        .then((r) => {
-          if (r) _u.push({ ...r, id: r.userId });
-        });
-    });
-
-    await Promise.all(m).catch((e) => {
-      throw e;
-    });
-    const waitingUser = _u
-      .filter((e) => e.actionCode === 'A')
-      .filter((user, index, self) => {
-        return self.findIndex((u) => u.username === user.username) === index;
-      });
-
-    users
-      .concat(waitingUser)
-      .forEach((e) =>
-        logger.info(
-          `${e.actionCode === 'A' ? 'Approved' : 'Last Approved'}: (status: ${
-            e.actionCode
-          }) FID-${fid}, with GID-${groupId}: send to UID-${e.id}: ${
-            e.username
-          }`
-        )
-      );
-
-    return users.concat(waitingUser);
+    return userGroup
   }
 
   /**
@@ -153,87 +100,127 @@ abstract class Service {
       });
 
     const typeIds: number[] = [...new Set(access.map((e) => e.typeId))];
-    const users = await prisma.userView.findMany({
-      select: {
-        id: true,
-        email: true,
-        fullname: true,
-        groupId: true,
-        actionCode: true,
-      },
-      where: {
-        actionCode: 'A',
-        recordStatus: 'A',
-        typeId: { in: typeIds },
-      },
-    });
-
     /**
-     * handle user when waiting
-     * from 1 role to another roles
+     * handle when user status is waiting for approval
+     * thats means this user has assign to some group before
+     * and this user has waiting for new group after
      */
-    const usersIsChange = await prisma.userRev
-      .findMany({
-        where: {
-          recordStatus: 'A',
-          actionCode: 'A',
-          typeId: { in: typeIds },
-          userId: { notIn: users.map((e) => e.id).filter(this.notEmpty) },
-        },
-      })
-      .catch((e) => {
-        throw e;
-      });
+    const findUserGroup: { id: number }[] = await prisma.$queryRaw`
+      SELECT  a."id"
+      FROM    "UserGroup" as a
+      INNER JOIN (
+        SELECT  MAX(b."checkedAt") as "maxdate", b."userId", b."groupId"
+        FROM    "UserGroup" as b
+        WHERE   b."actionCode" = 'APPROVED' AND b."recordStatus" = 'A'
+        GROUP BY b."userId", b."groupId"
+      ) as ib ON a."userId" = ib."userId" AND a."groupId" = ib."groupId" AND a."checkedAt" = ib."maxdate"
+      WHERE   a."typeId" IN (${Prisma.join(typeIds)})
+              AND a."recordStatus" = 'A' AND a."actionCode" = 'APPROVED';
+    `
 
-    interface IUserResponder {
-      id: number;
-      username: string;
-      email: string | null;
-      fullname: string | null;
-      groupId: number | null;
-      actionCode: string | null;
+    const userGroup = await prisma.userGroup.findMany({
+      select: {
+        userId: true,
+        groupId: true,
+        typeId: true,
+        user: { select: { username: true, fullname: true, email: true } },
+        group: { select: { name: true } },
+        type: { select: { name: true, mode: true, flag: true } },
+      },
+      where: { id: { in: findUserGroup.map(e => e.id) } }
+    }).catch(e => { throw e })
+
+    return userGroup
+  }
+
+  /**
+   *
+   * @param data
+   */
+  public async addLog(data: { flag: string, payload: ILogQMes }[]) {
+    if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
+
+    const now = Date.now()
+    const queue = new Queue('AppLog', {
+      connection: redisConnection,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: { count: 1000 },
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 1000
+        }
+      }
+    })
+    data.forEach(e => queue.add(`log-${e.flag}-${now}`, e.payload));
+    queue.on('error', (err) => logger.warn(`${Service.name} addLog: ${err.message}`));
+  }
+
+  /**
+   *
+   * @param data
+   */
+  public async addNotif(data: { flag: string, payload: INotifQMes }[]) {
+    if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
+
+    const now = Date.now()
+    const queue = new Queue('AppNotif', {
+      connection: redisConnection,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: { count: 1000 },
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 1000
+        }
+      }
+    })
+    data.forEach(e => queue.add(`not-${e.flag}-${now}`, e.payload));
+    queue.on('error', (err) => logger.warn(`${Service.name} addNotif: ${err.message}`));
+  }
+
+  /**
+   *
+   * @param key
+   * @param value
+   * @param seconds num of expires in second
+   * @returns
+   */
+  public async setRedisKV(key: string, value: string | number | Buffer, seconds: number) {
+    if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
+    await redisConnection.set(key, value);
+    await redisConnection.expire(key, seconds);
+  }
+
+  /**
+   *
+   * @param key
+   */
+  public async getRedisK(key: string) {
+    if (!process.env.REDIS_HOST) {
+      logger.warn(`<no-redis-defined>`)
+      return null
+    }
+    const value = await redisConnection.get(key)
+    return value
+  }
+
+  /**
+   *
+   * @param key
+   * @returns
+   */
+  public async delRedisK(key: string) {
+    if (!process.env.REDIS_HOST) {
+      logger.warn(`<no-redis-defined>`)
+      return null
     }
 
-    const u: IUserResponder[] = [];
-    const map = usersIsChange.map(async (e) => {
-      await prisma.userRev
-        .findFirst({
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            fullname: true,
-            groupId: true,
-            actionCode: true,
-          },
-          where: { userId: e.userId },
-          orderBy: { makedAt: 'desc' },
-        })
-        .then((r) => {
-          if (r) u.push(r);
-        });
-    });
-
-    await Promise.all(map).catch((e) => {
-      throw e;
-    });
-    const responder = u
-      .filter((e) => e.actionCode === 'W')
-      .filter((user, index, self) => {
-        return self.findIndex((u) => u.username === user.username) === index;
-      });
-
-    users
-      .concat(responder)
-      .forEach((e) =>
-        logger.info(
-          `${e.actionCode === 'A' ? 'Approved' : 'Last Approved'}: GID: ${
-            e.groupId
-          } responder email is ${e.email} - ${e.fullname}`
-        )
-      );
-
-    return users.concat(responder);
+    const value = await redisConnection.get(key)
+    if (!value) return null
+    await redisConnection.del(key);
   }
 }
 

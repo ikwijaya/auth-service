@@ -27,9 +27,6 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   email: string;
-
-  @IsString()
-  recordStatus: string;
 }
 
 export class UpdateUserDto {

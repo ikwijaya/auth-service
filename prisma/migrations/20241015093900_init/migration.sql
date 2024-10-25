@@ -1,9 +1,17 @@
+-- CreateEnum
+CREATE TYPE "actionCode" AS ENUM ('WAITING', 'APPROVED', 'REJECTED');
+
+-- CreateEnum
+CREATE TYPE "sysAction" AS ENUM ('SUBMIT', 'DRAFT');
+
+-- CreateEnum
+CREATE TYPE "rowAction" AS ENUM ('CREATE', 'UPDATE', 'DELETE');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" SERIAL NOT NULL,
     "ldapId" INTEGER,
     "ldapDn" TEXT,
-    "typeId" INTEGER,
     "attempt" INTEGER NOT NULL DEFAULT 0,
     "username" TEXT NOT NULL,
     "fullname" TEXT,
@@ -14,39 +22,27 @@ CREATE TABLE "User" (
     "updatedAt" TIMESTAMP(3),
     "updatedBy" INTEGER,
     "recordStatus" TEXT NOT NULL DEFAULT 'A',
-    "groupId" INTEGER,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "UserRev" (
+CREATE TABLE "UserGroup" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
-    "ldapId" INTEGER,
-    "ldapDn" TEXT,
-    "groupId" INTEGER,
-    "typeId" INTEGER,
-    "attempt" INTEGER NOT NULL DEFAULT 0,
-    "username" TEXT NOT NULL,
-    "fullname" TEXT,
-    "jsonLdap" JSONB,
-    "email" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdBy" INTEGER,
-    "updatedAt" TIMESTAMP(3),
-    "updatedBy" INTEGER,
-    "recordStatus" TEXT NOT NULL DEFAULT 'A',
-    "actionCode" TEXT,
-    "actionNote" TEXT,
-    "checkedAt" TIMESTAMP(3),
-    "checkedBy" INTEGER,
-    "makedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "makedBy" INTEGER,
-    "rowAction" TEXT NOT NULL DEFAULT 'C',
-    "sysAction" TEXT NOT NULL,
+    "groupId" INTEGER NOT NULL,
+    "typeId" INTEGER NOT NULL,
+    "checkedBy" INTEGER NOT NULL,
+    "checkedAt" TIMESTAMP(3) NOT NULL,
+    "makedBy" INTEGER NOT NULL,
+    "makedAt" TIMESTAMP(3) NOT NULL,
+    "actionCode" "actionCode" NOT NULL,
+    "rowAction" "rowAction" NOT NULL DEFAULT 'CREATE',
+    "sysAction" "sysAction" NOT NULL DEFAULT 'SUBMIT',
+    "changelog" TEXT,
+    "recordStatus" BOOLEAN NOT NULL,
 
-    CONSTRAINT "UserRev_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "UserGroup_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -81,9 +77,7 @@ CREATE TABLE "Ldap" (
     "usePlain" BOOLEAN NOT NULL DEFAULT true,
     "isDefault" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdBy" INTEGER NOT NULL,
     "updatedAt" TIMESTAMP(3),
-    "updatedBy" INTEGER,
     "recordStatus" TEXT NOT NULL DEFAULT 'A',
 
     CONSTRAINT "Ldap_pkey" PRIMARY KEY ("id")
@@ -201,11 +195,39 @@ CREATE TABLE "Session" (
     CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Options" (
+    "id" SERIAL NOT NULL,
+    "flag" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "changelog" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "recordStatus" TEXT NOT NULL DEFAULT 'A',
+
+    CONSTRAINT "Options_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
 
 -- CreateIndex
+CREATE INDEX "userIdUG_Index" ON "UserGroup"("userId");
+
+-- CreateIndex
+CREATE INDEX "groupIdUG_Index" ON "UserGroup"("groupId");
+
+-- CreateIndex
+CREATE INDEX "typeIdUG_Index" ON "UserGroup"("typeId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Wizard_token_key" ON "Wizard"("token");
+
+-- CreateIndex
+CREATE INDEX "formIdIndex" ON "Access"("formId");
+
+-- CreateIndex
+CREATE INDEX "typeIdIndex" ON "Access"("typeId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Session_token_key" ON "Session"("token");
@@ -220,46 +242,25 @@ CREATE INDEX "recordStatusIndex" ON "Session"("recordStatus");
 ALTER TABLE "User" ADD CONSTRAINT "User_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "User" ADD CONSTRAINT "User_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "Group"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_ldapId_fkey" FOREIGN KEY ("ldapId") REFERENCES "Ldap"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "User" ADD CONSTRAINT "User_typeId_fkey" FOREIGN KEY ("typeId") REFERENCES "Type"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "UserRev" ADD CONSTRAINT "UserRev_checkedBy_fkey" FOREIGN KEY ("checkedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "UserGroup" ADD CONSTRAINT "UserGroup_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "UserRev" ADD CONSTRAINT "UserRev_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "Group"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "UserGroup" ADD CONSTRAINT "UserGroup_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "Group"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "UserRev" ADD CONSTRAINT "UserRev_ldapId_fkey" FOREIGN KEY ("ldapId") REFERENCES "Ldap"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "UserRev" ADD CONSTRAINT "UserRev_makedBy_fkey" FOREIGN KEY ("makedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "UserRev" ADD CONSTRAINT "UserRev_typeId_fkey" FOREIGN KEY ("typeId") REFERENCES "Type"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "UserRev" ADD CONSTRAINT "UserRev_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "UserGroup" ADD CONSTRAINT "UserGroup_typeId_fkey" FOREIGN KEY ("typeId") REFERENCES "Type"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Wizard" ADD CONSTRAINT "Wizard_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Wizard" ADD CONSTRAINT "Wizard_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Ldap" ADD CONSTRAINT "Ldap_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Ldap" ADD CONSTRAINT "Ldap_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Type" ADD CONSTRAINT "Type_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

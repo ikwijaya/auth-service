@@ -8,6 +8,7 @@ import {
 } from '@/dto/wizard.dto';
 import { type IMessages } from '@/dto/common.dto';
 import Service from '@/lib/service';
+import { ILogQMes } from '@/dto/queue.dto';
 
 interface LdapWizardRes {
   id: number;
@@ -114,12 +115,8 @@ export default class WizardService extends Service {
       const json: LdapWizardDto = JSON.parse(str);
       await prisma
         .$transaction(async (tx) => {
-          const before = await tx.ldap.findFirst({
-            where: { id: obj.json.id },
-          });
-
           const date = new Date();
-          const after = await tx.ldap.update({
+          await tx.ldap.update({
             data: {
               updatedAt: new Date(),
               note: `updated by wizard with token is ${obj.token} at ${date}` as string & {
@@ -140,6 +137,15 @@ export default class WizardService extends Service {
             },
             where: { id: wizard.id, token: obj.token },
           });
+
+          const payload: ILogQMes = {
+            serviceName: WizardService.name,
+            action: 'sys-execute',
+            json: { token: obj.token, json: { id: obj.json.id, username: obj.json.username } },
+            message: 'wizard is processed for change identity of ldap auth'
+          }
+    
+          this.addLog([{ flag: WizardService.name, payload }])
         })
         .catch((e) => {
           throw e;

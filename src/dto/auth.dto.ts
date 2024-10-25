@@ -15,11 +15,25 @@ export class LoginDto {
   @IsInt()
   @IsOptional()
   groupId: number;
+
+  @IsOptional()
+  @IsString()
+  device: string | undefined;
+
+  @IsOptional()
+  @IsString()
+  ipAddress: string | undefined;
 }
 
 export class LoginResDto {
   @IsString()
   accessToken: string;
+
+  @IsOptional()
+  expiresIn: string;
+
+  @IsInt()
+  groupId: number;
 }
 
 export class LogoutResDto {

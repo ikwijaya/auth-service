@@ -7,8 +7,7 @@ import prisma from '@/lib/prisma';
 import { type IApiError } from '@/lib/errors';
 import { type LoginResDto, type LoginDto } from '@/dto/auth.dto';
 import { type IJwtVerify, type IMessages } from '@/dto/common.dto';
-import { aesCbcDecrypt, aesCbcEncrypt } from '@/lib/security';
-import LogQueue from '@/modules/log-queue/log-queue.service'
+import { aesCbcDecrypt } from '@/lib/security';
 import Service from '@/lib/service';
 import {
   AUTH_FAIL_01,
@@ -18,6 +17,8 @@ import {
 } from '@/utils/constants';
 import environment from '@/lib/environment';
 import logger from '@/lib/logger';
+import { ILogQMes } from '@/dto/queue.dto';
+import { convertToSeconds } from '@/utils/helper';
 const maxAttempt: number = 5;
 
 interface ILdapAttr {
@@ -28,385 +29,433 @@ interface ILdapAttr {
 }
 
 export default class AuthService extends Service {
-  private readonly _logQueue = new LogQueue();
 
+  /**
+   *
+   * @param obj
+   * @param username
+   * @param password
+   * @param ldap
+   * @param attempt
+   */
+  private async binding(
+    obj: {
+      userId: number;
+      roleId: number;
+      roleName: string,
+      groupId?: number;
+      groupName?: string,
+      device?: string;
+      ipAddress?: string;
+    },
+    username: string,
+    password: string,
+    ldap: Ldap,
+    attempt: number
+  ) {
+    const verify = await this.verifyLdap(username, ldap)
+    if (!verify.valid) throw { rawErrors: [AUTH_FAIL_01] } as IApiError;
+
+    const userPassword: string = await aesCbcDecrypt(
+      password,
+      process.env.ENCRYPTION_HASH
+    ).catch((e) => {
+      throw e;
+    });
+
+    const dn = verify.entries.length > 0 ? verify.entries[0].dn : undefined;
+    const options: AuthenticationOptions | undefined = {
+      ldapOpts: { url: ldap.url },
+      userDn: dn,
+      userPassword,
+      userSearchBase: this.buildDn(ldap),
+      usernameAttribute: ldap.filter,
+      username: username,
+      attributes: ['dn', 'cn', 'mail', 'displayName'],
+    };
+
+    /**
+     * in production this binding
+     * harus bawa user admin as binder
+     */
+    const ldapPassword: string = ldap.usePlain ? ldap.password : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH).catch((e) => { throw e; });
+    if (environment.isProd()) {
+      options.adminDn = this.buildUserMaster(ldap.username, ldap);
+      options.adminPassword = ldapPassword;
+    }
+
+    /**
+     * handle ldap
+     */
+    const valid: ILdapAttr | null | undefined = await authenticate(
+      options
+    ).catch(async (e) => {
+      /**
+       * Jika salah {n} times, maka harus cek ldap
+       * dan get bad count dan kapan bisa login
+       */
+      const nextLogin: string[] = [];
+      if (attempt >= maxAttempt && ldap) {
+        const lockoutTime = verify.valid && verify.entries.length > 0 ? verify.entries[0].lockoutTime : undefined;
+        logger.warn(`${AuthService.name}: ${lockoutTime}`);
+        if (lockoutTime) {
+          const date: Date = this.adConvertTime(lockoutTime as string);
+          logger.error(`login failed ${username}, please relogin after ${date}`);
+          nextLogin.push(`Silakan coba kembali setelah beberapa menit`);
+        }
+
+        const payload: ILogQMes = {
+          serviceName: AuthService.name,
+          action: 'bad-login',
+          json: { username: username, lockoutTime },
+          message: `${username} failed login: (percobaan: ${attempt}x), kesalahan pada username atau password. lock-time: ${lockoutTime}`,
+          createdAt: new Date(),
+          createdBy: obj.userId,
+          createdUsername: username,
+          roleId: obj.roleId,
+          roleName: obj.roleName,
+          device: obj.device,
+          ipAddress: obj.ipAddress
+        }
+
+        this.addLog([{ flag: `${AuthService.name}`, payload }])
+        throw {
+          stack: environment.isDev() ? verify : e,
+          rawErrors: [
+            `(percobaan: ${attempt}x), kesalahan pada username atau password`,
+          ].concat(nextLogin),
+        } as IApiError;
+      }
+
+      await prisma
+        .$transaction([
+          prisma.user.update({
+            where: { id: obj.userId },
+            data: {
+              attempt: attempt + 1,
+              updatedAt: new Date(),
+              updatedBy: obj.userId,
+            },
+          })
+        ])
+        .catch((e) => {
+          throw e;
+        });
+
+      const payload: ILogQMes = {
+        serviceName: AuthService.name,
+        action: 'bad-login',
+        json: { username: username, groupId: obj.groupId, type: obj.roleName },
+        message: `${username} failed login: (percobaan: ${attempt}x), kesalahan pada username atau password`,
+        createdAt: new Date(),
+        createdBy: obj.userId,
+        createdUsername: username,
+        roleId: obj.roleId,
+        roleName: obj.roleName,
+        device: obj.device,
+        ipAddress: obj.ipAddress
+      }
+
+      this.addLog([{ flag: `${AuthService.name}`, payload }])
+      throw {
+        rawErrors: [`(percobaan: ${attempt + 1}x), kesalahan pada username atau password`],
+        stack: e,
+      } as IApiError;
+    });
+
+    if (valid) {
+      logger.info(`nice binding for ${username} with DN: ${dn}`)
+      return valid
+    } else {
+      await prisma
+        .$transaction([
+          prisma.user.update({
+            where: { id: obj.userId },
+            data: {
+              attempt: attempt + 1,
+              updatedAt: new Date(),
+              updatedBy: obj.userId,
+            },
+          }),
+        ])
+        .catch((e) => {
+          throw e;
+        });
+
+      const payload: ILogQMes = {
+        serviceName: AuthService.name,
+        action: 'bad-login',
+        json: { username: username, groupId: obj.groupId },
+        message: `${username} failed login`,
+        createdAt: new Date(),
+        createdBy: obj.userId,
+        createdUsername: username,
+        roleId: obj.roleId,
+        roleName: obj.roleName,
+        device: obj.device,
+        ipAddress: obj.ipAddress
+      }
+
+      this.addLog([{ flag: `${AuthService.name}`, payload }])
+      throw { rawErrors: [LOGIN_FAIL_01] } as IApiError;
+    }
+  }
 
   /**
    *
    * @param obj
    * @returns
    */
-  public async login(obj: LoginDto): Promise<IApiError | LoginResDto> {
-    obj.username = obj.username.toLowerCase();
-    const userPassword: string = await aesCbcDecrypt(
-      obj.password,
-      process.env.ENCRYPTION_HASH
-    ).catch((e) => {
-      throw e;
-    });
-
-    /**
-     * cek user yg bernilai benar,
-     * karena last checkedAt desc
-     */
-    const user = await prisma.userRev
+  private async findUser(obj: LoginDto) {
+    const user = await prisma.user
       .findFirst({
         select: {
           ldap: true,
           id: true,
-          userId: true,
           username: true,
           fullname: true,
           email: true,
           attempt: true,
-          groupId: true,
-          group: {
-            select: {
-              name: true,
-            },
-          },
-          type: {
-            select: {
-              groupId: true,
-              name: true,
-            },
-          },
         },
         where: {
           username: obj.username.toLowerCase(),
           recordStatus: 'A',
-          actionCode: 'A',
-        },
-        orderBy: {
-          checkedAt: 'desc',
         },
       })
       .catch((e) => {
         throw e;
       });
 
-    /**
-     * handle user yg sudah di delete or disable
-     * agar tidak bisa login lagi
-     */
-    const userHasDisabled = await prisma.userView
-      .findFirst({
-        where: {
-          username: obj.username.toLowerCase(),
-          recordStatus: 'N',
-          actionCode: 'A',
-        },
-        orderBy: { checkedAt: 'desc' },
-      })
-      .catch((e) => {
-        throw e;
-      });
-
-    if (userHasDisabled) throw { rawErrors: [LOGIN_FAIL_00] } as IApiError;
-
-    /**
-     * set berdasarkan condition
-     * yg dihasilkan dari query user
-     */
-    if (!user) {
-      const tokenForLog = Jwt.sign(
-        {
-          id: 0,
-          username: 'system',
-          email: 'system',
-          fullname: 'system',
-          type: 'app-cms',
-          privilegeName: 'system',
-        } as IJwtVerify,
-        process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
-        { expiresIn: process.env.JWT_EXPIRE }
-      );
-
-      /// send log by msg-broker
-      // <-- here -->
-      // await this.msgBroker.publisher()
-
-      throw { rawErrors: [LOGIN_FAIL_00] } as IApiError;
-    } else if (!user.ldap) throw { rawErrors: [LOGIN_FAIL_00] } as IApiError;
+    if (user) return user
     else {
-      const verifyDN = await this.verifyLdap(obj.username, user.ldap).catch(
-        (e) => {
-          throw e;
-        }
-      );
-      if (!verifyDN.valid) throw { rawErrors: [AUTH_FAIL_01] } as IApiError;
-
-      const dn =
-        verifyDN.entries.length > 0 ? verifyDN.entries[0].dn : undefined;
-      const options: AuthenticationOptions | undefined = {
-        ldapOpts: { url: user?.ldap.url },
-        userDn: dn,
-        userPassword,
-        userSearchBase: this.buildDn(user.ldap),
-        usernameAttribute: user.ldap.filter,
-        username: obj.username,
-        attributes: ['dn', 'cn', 'mail', 'displayName'],
-      };
-
-      const ldapPassword: string = user.ldap.usePlain
-        ? user.ldap.password
-        : await aesCbcDecrypt(
-            user.ldap.password,
-            process.env.ENCRYPTION_HASH
-          ).catch((e) => {
-            throw e;
-          });
-
-      /**
-       * in production this binding
-       * harus bawa user admin as binder
-       */
-      if (environment.isProd()) {
-        options.adminDn = this.buildUserMaster(user.ldap.username, user.ldap);
-        options.adminPassword = ldapPassword;
+      const payload: ILogQMes = {
+        serviceName: AuthService.name,
+        action: 'bad-login',
+        json: { username: obj.username, groupId: obj.groupId },
+        message: `${obj.username} failed login`,
+        createdAt: new Date(),
+        device: obj.device,
+        ipAddress: obj.ipAddress
       }
 
-      const tokenForLog = Jwt.sign(
-        {
-          id: user.userId,
-          username: obj.username,
-          email: user.email,
-          fullname: user.fullname,
-          groupId: obj.groupId,
-          type: 'app-cms',
-          privilegeName: user.type?.name,
-        } as IJwtVerify,
-        process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
-        { expiresIn: process.env.JWT_EXPIRE }
-      );
+      this.addLog([{ flag: `${AuthService.name}`, payload }])
+      throw { rawErrors: [LOGIN_FAIL_00] } as IApiError;
+    }
+  }
 
-      /**
-       * handle ldap
-       */
-      const valid: ILdapAttr | null | undefined = await authenticate(
-        options
-      ).catch(async (e) => {
-        const objEnc = await aesCbcEncrypt(
-          JSON.stringify(obj),
-          process.env.ENCRYPTION_HASH
-        ).catch((e) => {
-          throw e;
-        });
-
-        /**
-         * Jika salah {n} times, maka harus cek ldap
-         * dan get bad count dan kapan bisa login
-         */
-        const nextLogin: string[] = [];
-        if (user.attempt >= maxAttempt && user.ldap) {
-          const verifyLdap = await this.verifyLdap(
-            obj.username,
-            user.ldap
-          ).catch((e) => {
-            throw e;
-          });
-          const lockoutTime =
-            verifyLdap.valid && verifyLdap.entries.length > 0
-              ? verifyLdap.entries[0].lockoutTime
-              : undefined;
-
-          console.log(`LockoutTime`, lockoutTime);
-          if (lockoutTime) {
-            const date: Date = this.adConvertTime(lockoutTime as string);
-            logger.error(
-              `login failed ${user.username}, please relogin after ${date}`
-            );
-            nextLogin.push(`Silakan coba kembali setelah beberapa menit`);
-          }
-
-          throw {
-            stack: environment.isDev() ? verifyLdap : e,
-            rawErrors: [
-              `(percobaan: ${user.attempt}x), kesalahan pada username atau password`,
-            ].concat(nextLogin),
-          } as IApiError;
-        }
-
-        await prisma
-          .$transaction([
-            prisma.user.update({
-              where: { id: user.userId },
-              data: {
-                attempt: user.attempt + 1,
-                updatedAt: new Date(),
-                updatedBy: user.userId,
-              },
-            }),
-            prisma.userRev.update({
-              where: { id: user.id },
-              data: {
-                attempt: user.attempt + 1,
-                updatedAt: new Date(),
-                updatedBy: user.userId,
-              },
-            }),
-          ])
-          .catch((e) => {
-            throw e;
-          });
-
-        /// send log by msg-broker
-        // <-- here -->
-
-        throw {
-          rawErrors: [
-            `(percobaan: ${
-              user.attempt + 1
-            }x), kesalahan pada username atau password`,
-          ],
-          stack: e,
-        } as IApiError;
+  /**
+   *
+   * @param obj
+   * @returns
+   */
+  private async withoutGroup(obj: LoginDto) {
+    const user = await this.findUser(obj);
+    if (!user) throw { rawErrors: [LOGIN_FAIL_00] } as IApiError;
+    const countUserGroup = await prisma.userGroup
+      .count({ where: { userId: user?.id } })
+      .catch((e) => {
+        throw e;
       });
 
-      /**
-       * handle LDAP binding
-       */
-      if (!valid) {
-        const objEnc = await aesCbcEncrypt(
-          JSON.stringify(obj),
-          process.env.ENCRYPTION_HASH
-        ).catch((e) => {
-          throw e;
-        });
-        await prisma
-          .$transaction([
-            prisma.user.update({
-              where: { id: user.userId },
-              data: {
-                attempt: user.attempt + 1,
-                updatedAt: new Date(),
-                updatedBy: user.userId,
-              },
-            }),
-            prisma.userRev.update({
-              where: { id: user.id },
-              data: {
-                attempt: user.attempt + 1,
-                updatedAt: new Date(),
-                updatedBy: user.userId,
-              },
-            }),
-          ])
-          .catch((e) => {
-            throw e;
-          });
+    if (countUserGroup === 0) throw { rawErrors: [LOGIN_FAIL_00] } as IApiError;
+    const userGroup = await prisma.userGroup
+      .findFirst({
+        select: {
+          groupId: true,
+          group: { select: { name: true } },
+          typeId: true,
+          type: { select: { name: true, mode: true, flag: true } }
+        },
+        where: {
+          userId: user.id,
+          recordStatus: 'A',
+          actionCode: 'APPROVED'
+        },
+        orderBy: {
+          checkedAt: 'desc'
+        }
+      })
+      .catch(e => { throw e })
+    if (!userGroup) throw { rawErrors: ["You not have default group to login, please select group before login"] } as IApiError;
+    else return { user, userGroup }
+  }
 
-        /// send log by msg-broker
-        // <-- here -->
+  /**
+   *
+   * @param obj
+   */
+  public async login(obj: LoginDto) {
+    const { user, userGroup } = await this.withoutGroup(obj).catch(e => { throw e })
 
-        throw { rawErrors: [LOGIN_FAIL_01] } as IApiError;
-      } else {
-        const token = Jwt.sign(
-          {
-            id: user.userId,
-            username: obj.username,
-            fullname: user.fullname,
-            groupId: user.groupId,
-            type: 'app-cms',
-          } as IJwtVerify,
-          process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
-          { expiresIn: process.env.JWT_EXPIRE }
-        );
+    if (!user.ldap) throw { rawErrors: ["Your account is not provided by active directory forest"] } as IApiError;
+    const valid = await this.binding({
+      userId: user.id,
+      roleId: userGroup.typeId,
+      roleName: userGroup.type.name,
+      groupId: userGroup.groupId,
+      groupName: userGroup.group.name,
+    }, obj.username, obj.password, user.ldap, user.attempt);
 
-        logger.info(`login ${obj.username} valid: OK`);
-        await prisma
-          .$transaction(async (tx) => {
-            await tx.user
-              .update({
-                where: { id: user.userId },
-                data: {
-                  fullname: valid.displayName,
-                  email: valid.mail,
-                  attempt: 0,
-                },
-              })
-              .catch((e) => {
-                throw e;
-              });
+    const token = Jwt.sign(
+      {
+        id: user.id,
+        username: obj.username,
+        fullname: user.fullname,
+        groupId: userGroup.groupId,
+        method: 'original',
+        type: 'app-cms',
+      } as IJwtVerify,
+      process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
+      { expiresIn: process.env.JWT_EXPIRE }
+    );
 
-            await tx.userRev
-              .update({
-                where: { id: user.id },
-                data: {
-                  fullname: valid.displayName,
-                  email: valid.mail,
-                  attempt: 0,
-                },
-              })
-              .catch((e) => {
-                throw e;
-              });
-
-            /**
-             * for handle single session
-             * only for production
-             */
-            if (environment.isProd()) {
-              logger.info(
-                `Multiple session is disable, cause env is ${environment.env}`
-              );
-              const lastSessions = await tx.session
-                .findMany({ where: { userId: user.userId, recordStatus: 'A' } })
-                .catch((e) => {
-                  throw e;
-                });
-              await tx.session
-                .updateMany({
-                  data: {
-                    recordStatus: 'N',
-                    updatedAt: new Date(),
-                    updatedBy: user.userId,
-                  },
-                  where: {
-                    id: { in: lastSessions.map((e) => e.id) },
-                  },
-                })
-                .catch((e) => {
-                  throw e;
-                });
-            } else
-              logger.info(
-                `Multiple session is enable, cause env is ${environment.env}`
-              );
-
-            /**
-             * handle create new session
-             */
-            await tx.session.create({
-              data: {
-                createdBy: user.userId,
-                createdAt: new Date(),
-                token,
-                type: 'app-cms',
-                userId: user.userId,
-              },
-            });
-
-            const userEnc = await aesCbcEncrypt(
-              JSON.stringify(user),
-              process.env.ENCRYPTION_HASH
-            ).catch((e) => {
-              throw e;
-            });
-
-            /// send log by msg-broker
-            // <-- here -->
+    await prisma
+      .$transaction(async (tx) => {
+        await tx.user
+          .update({
+            where: { id: user.id },
+            data: {
+              fullname: valid.displayName,
+              email: valid.mail,
+              attempt: 0,
+            },
           })
           .catch((e) => {
             throw e;
           });
 
-        return {
-          accessToken: token,
-          expiresIn: process.env.JWT_EXPIRE,
-        } as LoginResDto;
+        /**
+         * for handle single session
+         * only for production
+         */
+        if (environment.isProd()) {
+          logger.info(`Multiple session is disable, cause env is ${environment.env}`);
+          const lastSessions = await tx.session
+            .findMany({ where: { userId: user.id, recordStatus: 'A' } })
+            .catch((e) => {
+              throw e;
+            });
+          await tx.session
+            .updateMany({
+              data: {
+                recordStatus: 'N',
+                updatedAt: new Date(),
+                updatedBy: user.id,
+              },
+              where: {
+                id: { in: lastSessions.map((e) => e.id) },
+              },
+            })
+            .catch((e) => {
+              throw e;
+            });
+        } else
+          logger.info(`Multiple session is enable, cause env is ${environment.env}`);
+
+        /**
+         * handle create new session
+         */
+        await tx.session.create({
+          data: {
+            createdBy: user.id,
+            createdAt: new Date(),
+            token,
+            type: 'app-cms',
+            userId: user.id,
+          },
+        });
+
+        await this.setRedisKV("sid_" + obj.username, token, convertToSeconds(process.env.JWT_EXPIRE));
+        const payload: ILogQMes = {
+          serviceName: AuthService.name,
+          action: 'login',
+          json: { username: obj.username, groupId: obj.groupId, type: userGroup.type, fullname: user.fullname },
+          message: `${obj.username} success login`,
+          createdAt: new Date(),
+          createdBy: user.id,
+          createdUsername: user.username,
+          roleId: userGroup.typeId,
+          roleName: userGroup.type?.name,
+          device: obj.device,
+          ipAddress: obj.ipAddress
+        }
+
+        this.addLog([{ flag: `${AuthService.name}`, payload }])
+      })
+      .catch((e) => {
+        throw e;
+      });
+
+    return {
+      accessToken: 'Bearer ' + token,
+      expiresIn: process.env.JWT_EXPIRE,
+      groupId: obj.groupId
+    } as LoginResDto;
+  }
+
+  /**
+   *
+   * @param username
+   */
+  public async groups(username: string) {
+    const user = await prisma.user
+      .findFirst({
+        select: {
+          ldap: true,
+          id: true,
+          username: true,
+          fullname: true,
+          email: true,
+          attempt: true,
+        },
+        where: {
+          username: username.toLowerCase(),
+          recordStatus: 'A',
+        },
+      })
+      .catch((e) => {
+        throw e;
+      });
+
+    if (!user) throw { rawErrors: [LOGIN_FAIL_00] } as IApiError;
+    /**
+     * handle when user status is waiting for approval
+     * thats means this user has assign to some group before
+     * and this user has waiting for new group after
+     */
+    const findUserGroup: { id: number }[] = await prisma.$queryRaw`
+      SELECT  a."id"
+      FROM    "UserGroup" as a
+      INNER JOIN (
+        SELECT  MAX(b."checkedAt") as "maxdate", b."userId", b."groupId"
+        FROM    "UserGroup" as b
+        WHERE   b."actionCode" = 'APPROVED' AND b."recordStatus" = 'A'
+        GROUP BY b."userId", b."groupId"
+      ) as ib ON a."userId" = ib."userId" AND a."groupId" = ib."groupId" AND a."checkedAt" = ib."maxdate"
+      WHERE   a."recordStatus" = 'A' AND a."actionCode" = 'APPROVED';
+    `
+
+    const userGroup = await prisma.userGroup.findMany({
+      select: {
+        userId: true,
+        groupId: true,
+        typeId: true,
+        user: { select: { username: true, fullname: true, email: true } },
+        group: { select: { name: true } },
+        type: { select: { name: true, mode: true, flag: true } },
+      },
+      where: { id: { in: findUserGroup.map(e => e.id) }, userId: user.id }
+    }).catch(e => { throw e })
+
+    const gIds = userGroup.map(e => e.groupId)
+    const groups = await prisma.group.findMany({
+      select: { id: true, name: true },
+      where: {
+        id: { in: gIds }
       }
-    }
+    }).catch(e => { throw e })
+
+    return { messages: [], payload: { groups: Array.from(new Set(groups)) } } as IMessages
   }
 
   /**
@@ -422,10 +471,7 @@ export default class AuthService extends Service {
             select: {
               username: true,
               email: true,
-              fullname: true,
-              type: {
-                select: { name: true },
-              },
+              fullname: true
             },
           },
         },
@@ -452,9 +498,18 @@ export default class AuthService extends Service {
           throw e;
         });
 
-      /// send log by msg-broker
-      // <-- here -->
+      await this.delRedisK("sid_" + user.user.username)
+      const payload: ILogQMes = {
+        serviceName: AuthService.name,
+        action: 'logout',
+        json: { username: user.user.username, fullname: user.user.fullname },
+        message: `${user.user.fullname} is logged out`,
+        createdAt: new Date(),
+        createdBy: user.userId,
+        createdUsername: user.user.username
+      }
 
+      this.addLog([{ flag: `${AuthService.name}`, payload }])
       return { messages: [] } as IMessages;
     }
   }
@@ -472,10 +527,10 @@ export default class AuthService extends Service {
     const ldapPassword: string = ldap.usePlain
       ? ldap.password
       : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH).catch(
-          (e) => {
-            throw e;
-          }
-        );
+        (e) => {
+          throw e;
+        }
+      );
 
     const client = new Client({
       url: ldap.url,
