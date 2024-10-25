@@ -2,7 +2,6 @@ import { ILogQMes, INotifQMes } from '@/dto/queue.dto';
 import logger from './logger';
 import prisma from '@/lib/prisma';
 import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
 import { Prisma } from '@prisma/client';
 import redisConnection from './ioredis';
 
