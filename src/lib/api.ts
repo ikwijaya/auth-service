@@ -6,7 +6,8 @@ import logger from './logger';
 import { Queue, QueueEvents } from 'bullmq'
 import IORedis from 'ioredis';
 import { IWorkerApi } from '@/dto/common.dto';
-
+import axios from 'axios';
+import { IApiError } from './errors';
 
 /**
  * `Api` Represents an abstract base class for common expressJS API operations.
@@ -99,6 +100,27 @@ abstract class Api {
       if (value.jobId === jobId) return res.json(value.returnvalue);
     });
   }
+
+  /**
+   *
+   * @param baseURL
+   * @param payload
+   * @returns
+   */
+  public async sendRestful<T>(
+    baseURL: string,
+    payload: IWorkerApi
+  ) {
+    const instance = axios.create({ baseURL })
+    if (payload.method === 'GET') return await instance.get(payload.path, { headers: payload.headers as {} }).then((r) => r.data).catch(e => { throw e })
+    else if (payload.method === 'POST') return await instance.post(payload.path, payload.body, { headers: payload.headers as {} }).then((r) => r.data).catch(e => { throw e })
+    else if (payload.method === 'PUT') return await instance.put(payload.path, payload.body, { headers: payload.headers as {} }).then((r) => r.data).catch(e => { throw e })
+    else if (payload.method === 'PATCH') return await instance.patch(payload.path, payload.body, { headers: payload.headers as {} }).then((r) => r.data).catch(e => { throw e })
+    else if (payload.method === 'DELETE') return await instance.delete(payload.path, { headers: payload.headers as {} }).then((r) => r.data).catch(e => { throw e })
+    else throw { rawErrors: ["Not Implemented"] } as IApiError
+  }
+
+
 }
 
 export default Api;

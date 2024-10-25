@@ -1,6 +1,8 @@
 import chalk from 'chalk';
 import { EnvironmentFile } from '../enums/environment.enum';
 import { type CommonEnvKeys } from '@/types/environment.type';
+import logger from '@/lib/logger';
+import IORedis from 'ioredis';
 
 export type ChalkColor = typeof chalk.Color;
 
@@ -36,6 +38,65 @@ export const envFileNotFoundError = (key: CommonEnvKeys): string => {
     \r${divider}
   `;
 };
+
+/**
+ *
+ * @param key
+ * @param value
+ * @param seconds
+ * @returns
+ */
+export const setRedisKV = async (key: string, value: string | number | Buffer, seconds: number) => {
+  if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
+
+  const connection = new IORedis({
+    host: process.env.REDIS_HOST,
+    port: parseInt(process.env.REDIS_PORT)
+  })
+
+  await connection.set(key, value);
+  await connection.expire(key, seconds);
+}
+
+/**
+   *
+   * @param key
+   */
+export const getRedisK = async (key: string) => {
+  if (!process.env.REDIS_HOST) {
+    logger.warn(`<no-redis-defined>`)
+    return null
+  }
+
+  const connection = new IORedis({
+    host: process.env.REDIS_HOST,
+    port: parseInt(process.env.REDIS_PORT)
+  })
+
+  const value = await connection.get(key)
+  return value
+}
+
+/**
+ *
+ * @param key
+ * @returns
+ */
+export const delRedisK = async (key: string) => {
+  if (!process.env.REDIS_HOST) {
+    logger.warn(`<no-redis-defined>`)
+    return null
+  }
+
+  const connection = new IORedis({
+    host: process.env.REDIS_HOST,
+    port: parseInt(process.env.REDIS_PORT)
+  })
+
+  const value = await connection.get(key)
+  if (!value) return null
+  await connection.del(key);
+}
 
 /**
  *

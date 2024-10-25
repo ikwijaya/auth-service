@@ -31,14 +31,13 @@ const envValidationConfig = {
   REDIS_PASSWORD: str(),
   REDIS_SID_TTL: str(),
 
-  MARKETPLACE_API_URL: str(),
-
-  LOG_SERVICE_NAME: str(),
-  NOTIF_SERVICE_NAME: str(),
-  SCHEDULER_SERVICE_NAME: str(),
-  FILE_SERVICE_NAME: str(),
-  MARKETPLACE_SERVICE_NAME: str(),
-  KNOWLEDGE_SERVICE_NAME: str(),
+  API_LOG_URL: str(),
+  Q_LOG: str(),
+  Q_NOTIF: str(),
+  Q_SCHEDULER: str(),
+  Q_FILE_SERVICE: str(),
+  Q_MARKETPLACE: str(),
+  Q_KNOWLEDGE: str(),
 };
 
 export default envValidationConfig;

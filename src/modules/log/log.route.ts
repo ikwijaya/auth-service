@@ -21,4 +21,9 @@ router.post(
   controller.add
 );
 
+router.post(
+  '/bull/login',
+  controller.login
+)
+
 export default router;

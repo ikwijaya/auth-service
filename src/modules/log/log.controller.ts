@@ -3,6 +3,7 @@ import { type CustomResponse } from '@/types/common.type';
 import Api from '@/lib/api';
 import Jwt from 'jsonwebtoken';
 import { IJwtCommunicator, IWorkerApi } from '@/dto/common.dto';
+import { IApiError } from '@/lib/errors';
 
 export default class LogController extends Api {
 
@@ -32,7 +33,7 @@ export default class LogController extends Api {
       }
 
       const username: string = req.userAccount.username;
-      this.sendQueueEvents(res, username, process.env.LOG_SERVICE_NAME, payload)
+      this.sendQueueEvents(res, username, process.env.Q_LOG, payload)
     } catch (error) {
       next(error);
     }
@@ -64,9 +65,37 @@ export default class LogController extends Api {
       }
 
       const username: string = req.userAccount.username;
-      this.sendQueueEvents(res, username, process.env.LOG_SERVICE_NAME, payload)
+      this.sendQueueEvents(res, username, process.env.Q_LOG, payload)
     } catch (error) {
       next(error);
+    }
+  };
+
+  /**
+   *
+   * @param req
+   * @param res
+   * @param next
+   */
+  public login = async (
+    req: Request,
+    res: CustomResponse<any>,
+    next: NextFunction
+  ) => {
+    try {
+      const payload: IWorkerApi = {
+        method: req.method,
+        path: req.originalUrl,
+        body: req.body,
+        headers: { apikey: process.env.API_KEY }
+      }
+
+      const logUrl: string = process.env.API_LOG_URL
+      const value = await this.sendRestful(logUrl, payload).catch(e => { throw e })
+      if (value) res.redirect('/monitoring')
+      else res.redirect('/not-found')
+    } catch (error) {
+      res.redirect('/not-found')
     }
   };
 }

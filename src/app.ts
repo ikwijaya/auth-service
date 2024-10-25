@@ -19,16 +19,27 @@ import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
+import * as path from 'path';
+import { BaseAdapter } from '@bull-board/api/dist/src/queueAdapters/base';
 
 const chalkInit = chalk.yellow
 const initText = chalkInit(`RUNNING IN <${environment.env}> MODE`)
 const numberOfProxy = process.env.NUM_PROXY;
 class App {
   public express: express.Application;
+  private connection: IORedis;
 
   constructor() {
+    this.connection = new IORedis({
+      host: process.env.REDIS_HOST,
+      port: parseInt(process.env.REDIS_PORT),
+      maxRetriesPerRequest: null
+    });
+
     this.express = express();
     this.express.set('trust proxy', numberOfProxy);
+    this.express.set('views', path.join(__dirname, '../public'))
+    this.express.set('view engine', 'ejs')
     this.express.disable('x-powered-by');
 
     console.log(initText)
@@ -75,30 +86,36 @@ class App {
 
   private async bullMonitor(): Promise<void> {
     if (!process.env.REDIS_HOST) undefined
-    const connection = new IORedis({
-      host: process.env.REDIS_HOST,
-      port: parseInt(process.env.REDIS_PORT),
-      maxRetriesPerRequest: null
-    });
-    const createQueue = (name: string) => new Queue(name, { connection });
+    const createQueue = (name: string) => new Queue(name, { connection: this.connection });
     const adapter = new ExpressAdapter()
+    const Q: BaseAdapter[] = Object.keys(process.env)
+      .filter((key) => key.startsWith("Q_") && process.env[key] !== undefined && process.env[key] !== null)
+      .map((key) => process.env[key] as string)
+      .map(e => new BullMQAdapter(createQueue(e)))
+
     adapter.setBasePath('/monitoring');
     createBullBoard({
-      queues: [
-        new BullMQAdapter(createQueue(process.env.LOG_SERVICE_NAME), { readOnlyMode: true }),
-        new BullMQAdapter(createQueue(process.env.NOTIF_SERVICE_NAME), { readOnlyMode: true }),
-        new BullMQAdapter(createQueue(process.env.FILE_SERVICE_NAME), { readOnlyMode: true }),
-        new BullMQAdapter(createQueue(process.env.MARKETPLACE_SERVICE_NAME), { readOnlyMode: true }),
-        new BullMQAdapter(createQueue(process.env.KNOWLEDGE_SERVICE_NAME), { readOnlyMode: true }),
-        new BullMQAdapter(createQueue(process.env.SCHEDULER_SERVICE_NAME), { readOnlyMode: true }),
-      ], serverAdapter: adapter,
+      queues: Q,
+      serverAdapter: adapter,
       options: {
         uiConfig: {
           boardTitle: 'Monitoring'
         }
       }
     })
-    this.express.use('/monitoring', adapter.getRouter())
+
+    this.express.use('/monitoring/login', async (req, res) => {
+      await this.connection.del('_mon_')
+      res.render('login', { invalid: req.query.invalid === 'true' })
+    })
+
+    this.express.use('/not-found', async (req, res) => res.render('404'));
+    this.express.use('/monitoring',
+      async (req, res, next) => {
+        const value = await this.connection.get('_mon_')
+        if (value) next()
+        else res.redirect('/monitoring/login')
+      }, adapter.getRouter())
   }
 }
 
