@@ -85,25 +85,8 @@ class App {
   }
 
   private async bullMonitor(): Promise<void> {
-    if (!process.env.REDIS_HOST) undefined
-    const createQueue = (name: string) => new Queue(name, { connection: this.connection });
     const adapter = new ExpressAdapter()
-    const Q: BaseAdapter[] = Object.keys(process.env)
-      .filter((key) => key.startsWith("Q_") && process.env[key] !== undefined && process.env[key] !== null)
-      .map((key) => process.env[key] as string)
-      .map(e => new BullMQAdapter(createQueue(e)))
-
-    adapter.setBasePath('/monitoring');
-    createBullBoard({
-      queues: Q,
-      serverAdapter: adapter,
-      options: {
-        uiConfig: {
-          boardTitle: 'Monitoring'
-        }
-      }
-    })
-
+    const createQueue = (name: string) => new Queue(name, { connection: this.connection });
     this.express.use('/monitoring/login', async (req, res) => {
       await this.connection.del('_mon_')
       res.render('login', { invalid: req.query.invalid === 'true' })
@@ -113,6 +96,22 @@ class App {
     this.express.use('/monitoring',
       async (req, res, next) => {
         const value = await this.connection.get('_mon_')
+        const role = await this.connection.get('_mon_role')
+        const Q: BaseAdapter[] = Object.keys(process.env)
+          .filter((key) => key.startsWith("Q_") && process.env[key] !== undefined && process.env[key] !== null)
+          .map((key) => process.env[key] as string)
+          .map(e => new BullMQAdapter(createQueue(e), { readOnlyMode: role === 'rw' ? false : true }))
+
+        adapter.setBasePath('/monitoring');
+        createBullBoard({
+          queues: Q,
+          serverAdapter: adapter,
+          options: {
+            uiConfig: {
+              boardTitle: 'Monitoring'
+            }
+          }
+        })
         if (value) next()
         else res.redirect('/monitoring/login')
       }, adapter.getRouter())
