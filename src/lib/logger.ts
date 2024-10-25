@@ -12,8 +12,8 @@ import { LOG_DATE_FORMAT } from '@/utils/constants';
 import appConfig from '@/config/app.config';
 import chalk from 'chalk';
 import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
 import { ILogQMes } from '@/dto/queue.dto';
+import redisConnection from './ioredis';
 
 const GOOGLE_PROJECT_ID = process.env.GOOGLE_PROJECT_ID;
 const logTransports: transport[] = [new transports.Console()];
@@ -53,43 +53,39 @@ if (!environment.isDev()) {
 }
 
 /**
- * 
- * save in redis-log 
+ *
+ * save in redis-log
  * when level is not info
- * @param level 
- * @param message 
- * @returns 
+ * @param level
+ * @param message
+ * @returns
  */
 const addSysLog = (level: string, message: any) => {
-  if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
-
-  const value: ILogQMes = {
-    serviceName: process.env.APP_NAME,
-    action: `${level}`,
-    json: {},
-    message: message
-  }
-
-  const connection = new IORedis({
-    host: process.env.REDIS_HOST,
-    port: parseInt(process.env.REDIS_PORT)
-  })
-
-  const now = Date.now()
-  const queue = new Queue('syslog', {
-    connection,
-    defaultJobOptions: {
-      removeOnComplete: true,
-      removeOnFail: { count: 1000 },
-      attempts: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 1000
-      }
+  if (level === 'error' && process.env.REDIS_HOST) {
+    const value: ILogQMes = {
+      serviceName: process.env.APP_NAME,
+      action: `${level}`,
+      json: {},
+      message: message
     }
-  })
-  if (level !== 'info') queue.add(`syslog-${now}`, value)
-  queue.on('error', (err) => logger.error(`Logger: ${err.message}`));
+
+    const now = Date.now()
+    const queue = new Queue('syslog', {
+      connection: redisConnection,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: { count: 1000 },
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 1000
+        }
+      }
+    })
+
+    queue.add(`syslog-${now}`, value)
+    queue.on('error', (err) => logger.warn(`Logger: ${err.message}`));
+  }
 }
 
 const { printf, combine, label, timestamp, json, prettyPrint } = format;

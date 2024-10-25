@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import exRateLimit from 'express-rate-limit';
 import { type IApiError } from './errors';
 import { RedisStore } from 'rate-limit-redis'
-import IORedis from 'ioredis';
+import redisConnection from './ioredis';
 
 /**
  * Encrypts plaintext using AES-CBC with supplied password, for decryption with aesCbcDecrypt().
@@ -125,11 +125,6 @@ interface IRateLimit {
  * @returns
  */
 export function rateLimit(options: IRateLimit) {
-  const connection = new IORedis({
-    host: process.env.REDIS_HOST,
-    port: parseInt(process.env.REDIS_PORT)
-  })
-
   if (process.env.REDIS_HOST)
     return exRateLimit({
       skip: (req, res) => options.skip ? options.skip.includes(req.ip) : false,
@@ -140,7 +135,7 @@ export function rateLimit(options: IRateLimit) {
       message: { rawErrors: ['Terlalu banyak permintaan, silakan coba lagi nanti'] } as IApiError,
       store: new RedisStore({
         // @ts-expect-error - Known issue: the `call` function is not present in @types/ioredis
-        sendCommand: (...args: string[]) => connection.call(...args)
+        sendCommand: (...args: string[]) => redisConnection.call(...args)
       })
     });
   else

@@ -4,10 +4,10 @@ import mcache from 'memory-cache';
 import environment from './environment';
 import logger from './logger';
 import { Queue, QueueEvents } from 'bullmq'
-import IORedis from 'ioredis';
 import { IWorkerApi } from '@/dto/common.dto';
 import axios from 'axios';
 import { IApiError } from './errors';
+import redisConnection from './ioredis';
 
 /**
  * `Api` Represents an abstract base class for common expressJS API operations.
@@ -69,16 +69,10 @@ abstract class Api {
     queueName: string,
     payload: IWorkerApi
   ) {
-    const connection = new IORedis({
-      host: process.env.REDIS_HOST,
-      port: parseInt(process.env.REDIS_PORT),
-      maxRetriesPerRequest: null
-    });
-
     const now: number = Date.now()
     const jobId: string = username + '_' + now;
     const queue = new Queue(queueName, {
-      connection,
+      connection: redisConnection,
       defaultJobOptions: {
         removeOnComplete: true,
         removeOnFail: { count: 1000 },
@@ -91,8 +85,9 @@ abstract class Api {
     });
 
     logger.info("create Queue" + queueName + " with jobId: " + jobId)
-    const queueEvents = new QueueEvents(queueName, { connection, autorun: true })
+    const queueEvents = new QueueEvents(queueName, { connection: redisConnection, autorun: true })
     queue.add(jobId, payload, { jobId });
+    queueEvents.on('error', (err: Error) => logger.warn(Api.name + ': ' + err.name))
     queueEvents.on('progress', (args) => logger.info("JobId: " + args.jobId + " progressing"))
     queueEvents.on('completed', async (value) => {
       logger.info("jobId: " + value.jobId)

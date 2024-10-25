@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import { EnvironmentFile } from '../enums/environment.enum';
 import { type CommonEnvKeys } from '@/types/environment.type';
 import logger from '@/lib/logger';
-import IORedis from 'ioredis';
+import redisConnection from '@/lib/ioredis';
 
 export type ChalkColor = typeof chalk.Color;
 
@@ -48,14 +48,8 @@ export const envFileNotFoundError = (key: CommonEnvKeys): string => {
  */
 export const setRedisKV = async (key: string, value: string | number | Buffer, seconds: number) => {
   if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
-
-  const connection = new IORedis({
-    host: process.env.REDIS_HOST,
-    port: parseInt(process.env.REDIS_PORT)
-  })
-
-  await connection.set(key, value);
-  await connection.expire(key, seconds);
+  await redisConnection.set(key, value);
+  await redisConnection.expire(key, seconds);
 }
 
 /**
@@ -68,12 +62,7 @@ export const getRedisK = async (key: string) => {
     return null
   }
 
-  const connection = new IORedis({
-    host: process.env.REDIS_HOST,
-    port: parseInt(process.env.REDIS_PORT)
-  })
-
-  const value = await connection.get(key)
+  const value = await redisConnection.get(key)
   return value
 }
 
@@ -88,14 +77,9 @@ export const delRedisK = async (key: string) => {
     return null
   }
 
-  const connection = new IORedis({
-    host: process.env.REDIS_HOST,
-    port: parseInt(process.env.REDIS_PORT)
-  })
-
-  const value = await connection.get(key)
+  const value = await redisConnection.get(key)
   if (!value) return null
-  await connection.del(key);
+  await redisConnection.del(key);
 }
 
 /**

@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { Prisma } from '@prisma/client';
+import redisConnection from './ioredis';
 
 /**
  * `Api` Represents an abstract base class for common expressJS API operations.
@@ -140,14 +141,9 @@ abstract class Service {
   public async addLog(data: { flag: string, payload: ILogQMes }[]) {
     if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
 
-    const connection = new IORedis({
-      host: process.env.REDIS_HOST,
-      port: parseInt(process.env.REDIS_PORT)
-    })
-
     const now = Date.now()
     const queue = new Queue('AppLog', {
-      connection,
+      connection: redisConnection,
       defaultJobOptions: {
         removeOnComplete: true,
         removeOnFail: { count: 1000 },
@@ -159,7 +155,7 @@ abstract class Service {
       }
     })
     data.forEach(e => queue.add(`log-${e.flag}-${now}`, e.payload));
-    queue.on('error', (err) => logger.error(`${Service.name} addLog: ${err.message}`));
+    queue.on('error', (err) => logger.warn(`${Service.name} addLog: ${err.message}`));
   }
 
   /**
@@ -169,14 +165,9 @@ abstract class Service {
   public async addNotif(data: { flag: string, payload: INotifQMes }[]) {
     if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
 
-    const connection = new IORedis({
-      host: process.env.REDIS_HOST,
-      port: parseInt(process.env.REDIS_PORT)
-    })
-
     const now = Date.now()
     const queue = new Queue('AppNotif', {
-      connection,
+      connection: redisConnection,
       defaultJobOptions: {
         removeOnComplete: true,
         removeOnFail: { count: 1000 },
@@ -188,7 +179,7 @@ abstract class Service {
       }
     })
     data.forEach(e => queue.add(`not-${e.flag}-${now}`, e.payload));
-    queue.on('error', (err) => logger.error(`${Service.name} addNotif: ${err.message}`));
+    queue.on('error', (err) => logger.warn(`${Service.name} addNotif: ${err.message}`));
   }
 
   /**
@@ -200,14 +191,8 @@ abstract class Service {
    */
   public async setRedisKV(key: string, value: string | number | Buffer, seconds: number) {
     if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
-
-    const connection = new IORedis({
-      host: process.env.REDIS_HOST,
-      port: parseInt(process.env.REDIS_PORT)
-    })
-
-    await connection.set(key, value);
-    await connection.expire(key, seconds);
+    await redisConnection.set(key, value);
+    await redisConnection.expire(key, seconds);
   }
 
   /**
@@ -219,13 +204,7 @@ abstract class Service {
       logger.warn(`<no-redis-defined>`)
       return null
     }
-
-    const connection = new IORedis({
-      host: process.env.REDIS_HOST,
-      port: parseInt(process.env.REDIS_PORT)
-    })
-
-    const value = await connection.get(key)
+    const value = await redisConnection.get(key)
     return value
   }
 
@@ -240,14 +219,9 @@ abstract class Service {
       return null
     }
 
-    const connection = new IORedis({
-      host: process.env.REDIS_HOST,
-      port: parseInt(process.env.REDIS_PORT)
-    })
-
-    const value = await connection.get(key)
+    const value = await redisConnection.get(key)
     if (!value) return null
-    await connection.del(key);
+    await redisConnection.del(key);
   }
 }
 

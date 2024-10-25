@@ -21,20 +21,17 @@ import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import * as path from 'path';
 import { BaseAdapter } from '@bull-board/api/dist/src/queueAdapters/base';
+import redisConnection from './lib/ioredis';
 
 const chalkInit = chalk.yellow
 const initText = chalkInit(`RUNNING IN <${environment.env}> MODE`)
 const numberOfProxy = process.env.NUM_PROXY;
 class App {
   public express: express.Application;
-  private connection: IORedis;
+  private ioredis: IORedis;
 
   constructor() {
-    this.connection = new IORedis({
-      host: process.env.REDIS_HOST,
-      port: parseInt(process.env.REDIS_PORT),
-      maxRetriesPerRequest: null
-    });
+    this.ioredis = redisConnection
 
     this.express = express();
     this.express.set('trust proxy', numberOfProxy);
@@ -86,17 +83,17 @@ class App {
 
   private async bullMonitor(): Promise<void> {
     const adapter = new ExpressAdapter()
-    const createQueue = (name: string) => new Queue(name, { connection: this.connection });
+    const createQueue = (name: string) => new Queue(name, { connection: this.ioredis });
     this.express.use('/monitoring/login', async (req, res) => {
-      await this.connection.del('_mon_')
-      res.render('login', { invalid: req.query.invalid === 'true' })
+      await this.ioredis.del('_mon_')
+      res.render('login')
     })
 
     this.express.use('/not-found', async (req, res) => res.render('404'));
     this.express.use('/monitoring',
       async (req, res, next) => {
-        const value = await this.connection.get('_mon_')
-        const role = await this.connection.get('_mon_role')
+        const value = await this.ioredis.get('_mon_')
+        const role = await this.ioredis.get('_mon_role')
         const Q: BaseAdapter[] = Object.keys(process.env)
           .filter((key) => key.startsWith("Q_") && process.env[key] !== undefined && process.env[key] !== null)
           .map((key) => process.env[key] as string)
