@@ -130,7 +130,7 @@ export default class UtilService {
     username: string
   ): Promise<{ valid: boolean; entries: Entry[] }> {
     if (!auth.ldapId) throw { rawErrors: ["Error no ldap config found"] } as IApiError
-    
+
     const ldap = await prisma.ldap
       .findFirst({
         where: { recordStatus: 'A', id: auth.ldapId },

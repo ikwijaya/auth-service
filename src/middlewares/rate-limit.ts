@@ -1,8 +1,8 @@
 import { type NextFunction, type Request, type Response } from 'express';
 import { HttpStatusCode } from 'axios';
-import { MarketPlaceService } from '@/modules/market-place.service';
 import prisma from '@/lib/prisma';
 import { IApiError } from '@/lib/errors';
+import { ITierLimit, IWorkerApi } from '@/dto/common.dto';
 
 /**
  *
@@ -15,18 +15,29 @@ export const verifyRateLimit = async (
     res: Response,
     next: NextFunction
 ) => {
-    const marketPlace = new MarketPlaceService()
     const apiKey = req.headers.PAPI_KEY;
+    next()
 
-    if (!apiKey) res
-        .status(HttpStatusCode.BadGateway)
-        .send({ rawErrors: [`Bad Gateway`] });
+    // if (!apiKey) res
+    //     .status(HttpStatusCode.BadGateway)
+    //     .send({ rawErrors: [`Bad Gateway`] });
 
-    const _res = await marketPlace.getProjectId(req.userAccount, apiKey as string).catch(e => { throw e });
-    const rateCount = await prisma.rateLimit.count({ where: { projectId: _res.id } }).catch(e => { throw e });
+    // const ev = new UseQueryEvents()
+    // const username: string = req.userAccount.username ?? 'rate.limit';
+    // const payload: IWorkerApi = {
+    //   method: 'GET',
+    //   path: '/v1/project',
+    //   body: {},
+    //   headers: {
+    //     apikey: apiKey
+    //   }
+    // }
+    // const _res = await ev.sendQueueEvents<ITierLimit>(username, process.env.Q_MARKETPLACE, payload);
+    // // const _res = await marketPlace.getProjectId(req.userAccount, apiKey as string).catch(e => { throw e });
+    // const rateCount = await prisma.rateLimit.count({ where: { projectId: _res.id } }).catch(e => { throw e });
 
-    if (_res.tierLimit > rateCount) next()
-    else res
-        .status(HttpStatusCode.TooManyRequests)
-        .send({ rawErrors: ["Max tier limit is excedeed"], stack: { limit: _res.tierLimit } as any } as IApiError);
+    // if (_res.tierLimit > rateCount) next()
+    // else res
+    //     .status(HttpStatusCode.TooManyRequests)
+    //     .send({ rawErrors: ["Max tier limit is excedeed"], stack: { limit: _res.tierLimit } as any } as IApiError);
 };
