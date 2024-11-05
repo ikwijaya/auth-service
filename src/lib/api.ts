@@ -7,7 +7,7 @@ import environment from './environment';
 import logger from './logger';
 import { isAPIError, type IApiError } from './errors';
 import redisConnection from './ioredis';
-import { IMessages, type IWorkerApi } from '@/dto/common.dto';
+import { type IMessages, type IWorkerApi } from '@/dto/common.dto';
 
 /**
  * `Api` Represents an abstract base class for common expressJS API operations.
@@ -68,7 +68,7 @@ abstract class Api {
     username: string,
     queueName: string,
     payload: IWorkerApi,
-    statusCode?: HttpStatusCode,
+    statusCode?: HttpStatusCode
   ) {
     const now: number = Date.now();
     const jobId: string = username + '_' + now.toString();
@@ -100,7 +100,9 @@ abstract class Api {
     queueEvents.on('completed', async (value) => {
       logger.info('jobId: ' + value.jobId);
       logger.info('returnvalue: ' + JSON.stringify(value.returnvalue));
-      const _value: IMessages | IApiError = value.returnvalue as unknown as IMessages | IApiError;
+      const _value: IMessages | IApiError = value.returnvalue as unknown as
+        | IMessages
+        | IApiError;
       if (value.jobId === jobId) {
         if (_value && isAPIError(_value))
           res.status(_value.statusCode).send(value.returnvalue);
