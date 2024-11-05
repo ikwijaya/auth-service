@@ -15,8 +15,8 @@ import {
   DEFAULT_DELETED,
   DEFAULT_SUCCESS,
   DEFAULT_UPDATED,
-  ERR_SURR_API,
 } from '@/utils/constants';
+import { ILogQMes } from '@/dto/queue.dto';
 
 export default class GroupService extends Service {
   /**
@@ -94,8 +94,8 @@ export default class GroupService extends Service {
     return {
       items: items.map((e) => ({
         ...e,
-        is_update: matrix.is_read && e.recordStatus === 'A',
-        is_delete: matrix.is_read && e.recordStatus === 'A',
+        is_update: matrix.is_update && e.recordStatus === 'A',
+        is_delete: matrix.is_delete && e.recordStatus === 'A',
       })),
       matrix,
       pagination: params,
@@ -127,11 +127,6 @@ export default class GroupService extends Service {
         select: {
           id: true,
           name: true,
-          User: {
-            select: {
-              username: true,
-            },
-          },
           createdAt: true,
           updatedAt: true,
           createdUser: {
@@ -156,7 +151,6 @@ export default class GroupService extends Service {
       diEditOleh: e.updatedUser?.username
         ? e.updatedUser.username
         : e.createdUser.username,
-      anggota: e.User.map((e) => e.username).join(', '),
     }));
 
     return data;
@@ -226,6 +220,21 @@ export default class GroupService extends Service {
             throw e;
           });
 
+        const payload: ILogQMes = {
+          serviceName: GroupService.name,
+          action: 'create',
+          json: { obj },
+          message: `${auth.fullname} is created group ${obj.name}`,
+          createdAt: new Date(),
+          createdBy: auth.userId,
+          createdUsername: auth.username,
+          roleId: auth.typeId,
+          roleName: auth.type?.name,
+          device: auth.device,
+          ipAddress: auth.ipAddress
+        }
+
+        this.addLog([{ flag: `${GroupService.name}`, payload }])
         return {
           messages: ['Grup', DEFAULT_SUCCESS],
           payload: group,
@@ -268,6 +277,21 @@ export default class GroupService extends Service {
           throw e;
         });
 
+        const payload: ILogQMes = {
+          serviceName: GroupService.name,
+          action: 'update',
+          json: { before: isExists, after: obj },
+          message: `${auth.fullname} is updated group from ${isExists.name} to ${obj.name}`,
+          createdAt: new Date(),
+          createdBy: auth.userId,
+          createdUsername: auth.username,
+          roleId: auth.typeId,
+          roleName: auth.type?.name,
+          device: auth.device,
+          ipAddress: auth.ipAddress
+        }
+
+        this.addLog([{ flag: `${GroupService.name}`, payload }])
         return {
           messages: ['Grup', DEFAULT_UPDATED],
         } as IMessages;
@@ -287,12 +311,8 @@ export default class GroupService extends Service {
     auth: IUserAccount,
     id: number
   ): Promise<IApiError | IMessages> {
-    const checks = await prisma.user
-      .findFirst({ where: { groupId: id } })
-      .catch((e) => {
-        throw e;
-      });
-    if (checks)
+    const check = await prisma.userGroup.findMany({ where: { groupId: id, actionCode: 'APPROVED', recordStatus: 'A' } }).catch(e => { throw e })
+    if (check.length > 0) 
       throw {
         rawErrors: ['Group masih digunakan oleh beberapa user'],
       } as IApiError;
@@ -321,6 +341,21 @@ export default class GroupService extends Service {
           throw e;
         });
 
+        const payload: ILogQMes = {
+          serviceName: GroupService.name,
+          action: 'delete',
+          json: { id, before: isExists },
+          message: `${auth.fullname} is deleted group ${isExists.name}`,
+          createdAt: new Date(),
+          createdBy: auth.userId,
+          createdUsername: auth.username,
+          roleId: auth.typeId,
+          roleName: auth.type?.name,
+          device: auth.device,
+          ipAddress: auth.ipAddress
+        }
+
+        this.addLog([{ flag: `${GroupService.name}`, payload }])
         return {
           messages: ['Grup', DEFAULT_DELETED],
         } as IMessages;

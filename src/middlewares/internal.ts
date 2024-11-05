@@ -15,7 +15,8 @@ export const verifyInternalToken = async (
   next: NextFunction
 ) => {
   const { headers } = req;
-  const token = headers.token;
+  const authorization = headers['authorization'];
+  const token = authorization?.split(' ')[1]
 
   if (!token)
     res

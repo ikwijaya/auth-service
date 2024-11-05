@@ -1,6 +1,7 @@
 import server from './server';
 import logger from './lib/logger';
 import prismaClient from '@/lib/prisma';
+import redisConnection from './lib/ioredis';
 
 server.listen(process.env.PORT, () => {
   logger.info(
@@ -13,7 +14,9 @@ server.listen(process.env.PORT, () => {
 process.on('SIGINT', () => {
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
   prismaClient.$disconnect();
-  logger.info('Prisma Disconnected.');
+  redisConnection.quit();
+  logger.warn('Prisma Disconnected.');
+  logger.warn('Redis Disconnected.');
   process.exit(0);
 });
 

@@ -18,6 +18,7 @@ import {
   DEFAULT_SUCCESS,
   DEFAULT_UPDATED
 } from '@/utils/constants';
+import { ILogQMes } from '@/dto/queue.dto';
 
 export default class TypeService extends Service {
   private readonly AccessService = new accessService();
@@ -74,11 +75,6 @@ export default class TypeService extends Service {
           flag: true,
           note: true,
           recordStatus: true,
-          Users: {
-            select: {
-              username: true,
-            },
-          },
           createdAt: true,
           updatedAt: true,
           createdUser: {
@@ -100,8 +96,8 @@ export default class TypeService extends Service {
     return {
       items: items.map((e) => ({
         ...e,
-        is_update: matrix.is_read && e.recordStatus === 'A',
-        is_delete: matrix.is_read && e.recordStatus === 'A',
+        is_update: matrix.is_update && e.recordStatus === 'A',
+        is_delete: matrix.is_delete && e.recordStatus === 'A',
       })),
       matrix,
       pagination: params,
@@ -159,18 +155,6 @@ export default class TypeService extends Service {
               },
             },
           },
-          Users: {
-            select: {
-              username: true,
-              fullname: true,
-              email: true,
-              group: {
-                select: {
-                  name: true,
-                },
-              },
-            },
-          },
           createdAt: true,
           updatedAt: true,
           createdUser: {
@@ -221,10 +205,6 @@ export default class TypeService extends Service {
       diEditOleh: e.updatedUser?.username
         ? e.updatedUser.username
         : e.createdUser.username,
-      anggota: e.Users.map(
-        (a) =>
-          a.group?.name + ` (` + (a.fullname ?? '') + ' - ' + a.username + ')'
-      ).join(', '),
       matriks: flattenMenu(
         e.Access.map((a) => ({
           roleValue: a.roleValue,
@@ -255,11 +235,6 @@ export default class TypeService extends Service {
           id: true,
           name: true,
           mode: true,
-          Users: {
-            select: {
-              username: true,
-            },
-          },
           createdAt: true,
           updatedAt: true,
           createdUser: {
@@ -367,6 +342,21 @@ export default class TypeService extends Service {
           throw e;
         });
 
+        const payload: ILogQMes = {
+          serviceName: TypeService.name,
+          action: 'create',
+          json: { obj, matrix },
+          message: `${auth.fullname} is created peran ${obj.name}`,
+          createdAt: new Date(),
+          createdBy: auth.userId,
+          createdUsername: auth.username,
+          roleId: auth.typeId,
+          roleName: auth.type?.name,
+          device: auth.device,
+          ipAddress: auth.ipAddress
+        }
+
+        this.addLog([{ flag: `${TypeService.name}`, payload }])
         return {
           messages: ['Peran', DEFAULT_SUCCESS],
           payload: type,
@@ -442,14 +432,14 @@ export default class TypeService extends Service {
             throw e;
           });
 
-        /// / get all access foreign with typeId == id
+        /// get all access foreign with typeId == id
         const accessIds = await tx.access
           .findMany({ select: { id: true }, where: { typeId: id } })
           .catch((e) => {
             throw e;
           });
 
-        /// / then delete-all data before
+        /// then delete-all data before
         await tx.access
           .deleteMany({
             where: {
@@ -461,7 +451,7 @@ export default class TypeService extends Service {
             throw e;
           });
 
-        /// / then inject with new data
+        /// then inject with new data
         const matrix = await this.AccessService.buildMatrix(
           obj.forms,
           id,
@@ -471,6 +461,21 @@ export default class TypeService extends Service {
           throw e;
         });
 
+        const payload: ILogQMes = {
+          serviceName: TypeService.name,
+          action: 'update',
+          json: { matrix, before: exist, after: obj },
+          message: `${auth.fullname} is updated peran from ${exist.name} to ${obj.name}`,
+          createdAt: new Date(),
+          createdBy: auth.userId,
+          createdUsername: auth.username,
+          roleId: auth.typeId,
+          roleName: auth.type?.name,
+          device: auth.device,
+          ipAddress: auth.ipAddress
+        }
+
+        this.addLog([{ flag: `${TypeService.name}`, payload }])
         return {
           messages: ['Peran', DEFAULT_UPDATED],
         } as IMessages;
@@ -490,12 +495,8 @@ export default class TypeService extends Service {
     auth: IUserAccount,
     id: number
   ): Promise<IApiError | IMessages> {
-    const checks = await prisma.user
-      .findFirst({ where: { typeId: id } })
-      .catch((e) => {
-        throw e;
-      });
-    if (checks)
+    const check = await prisma.userGroup.findMany({ where: { typeId: id, actionCode: 'APPROVED', recordStatus: 'A' } }).catch(e => { throw e })
+    if (check.length > 0)
       throw {
         rawErrors: ['Peran masih digunakan oleh beberapa User'],
       } as IApiError;
@@ -528,6 +529,21 @@ export default class TypeService extends Service {
           throw e;
         });
 
+        const payload: ILogQMes = {
+          serviceName: TypeService.name,
+          action: 'delete',
+          json: { before: exist, id },
+          message: `${auth.fullname} is deleted peran ${exist.name}`,
+          createdAt: new Date(),
+          createdBy: auth.userId,
+          createdUsername: auth.username,
+          roleId: auth.typeId,
+          roleName: auth.type?.name,
+          device: auth.device,
+          ipAddress: auth.ipAddress
+        }
+
+        this.addLog([{ flag: `${TypeService.name}`, payload }])
         return {
           messages: ['Peran', DEFAULT_DELETED],
         } as IMessages;
