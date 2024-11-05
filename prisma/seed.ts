@@ -205,24 +205,28 @@ async function seed(): Promise<void> {
   });
 
   await prisma.$transaction(async (tx) => {
-    await tx.user.update({ data: { ldapId: 1 }, where: { id: 1 } })
-    const _user = await tx.user
-      .findFirst({ where: { id: 1 } })
-      .catch(e => { throw e });
+    await tx.user.update({ data: { ldapId: 1 }, where: { id: 1 } });
+    const _user = await tx.user.findFirst({ where: { id: 1 } }).catch((e) => {
+      throw e;
+    });
 
     if (_user)
-      await tx.userGroup.create({
-        data: {
-          userId: _user.id,
-          typeId: 1,
-          groupId: 1,
-          checkedAt: new Date(),
-          checkedBy: 1,
-          makedAt: new Date(),
-          makedBy: 1,
-          actionCode: 'APPROVED'
-        }
-      }).catch(e => { throw e })
+      await tx.userGroup
+        .create({
+          data: {
+            userId: _user.id,
+            typeId: 1,
+            groupId: 1,
+            checkedAt: new Date(),
+            checkedBy: 1,
+            makedAt: new Date(),
+            makedBy: 1,
+            actionCode: 'APPROVED',
+          },
+        })
+        .catch((e) => {
+          throw e;
+        });
 
     /// get all form then build access
     const forms = await tx.form
@@ -260,11 +264,13 @@ async function seed(): Promise<void> {
       ] as IRole[],
     }));
 
-    const accessItems = await buildMatrix(matrix, 1, 1).catch(e => { throw e })
+    const accessItems = await buildMatrix(matrix, 1, 1).catch((e) => {
+      throw e;
+    });
     await tx.access.createMany({ data: accessItems }).catch((e) => {
       throw e;
     });
-  })
+  });
 }
 
 async function main(): Promise<void> {
@@ -329,8 +335,7 @@ async function buildMatrix(
 
 const env = process.env.NODE_ENV;
 const dbUrl = process.env.DATABASE_URL;
-const allow = dbUrl && /@localhost\b/i.test(dbUrl)
+const allow = dbUrl && /@localhost\b/i.test(dbUrl);
 
-if (env === 'development' && dbUrl && allow)
-  void main();
+if (env === 'development' && dbUrl && allow) void main();
 else logger.info(`only development env can do a seed process`);

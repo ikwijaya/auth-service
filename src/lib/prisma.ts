@@ -58,14 +58,21 @@ const loopQueryEvent = (object: Prisma.QueryEvent) => {
  * @param object
  * @param status
  */
-const loopLogEvent = (object: Prisma.LogEvent, status: 'log' | 'err' | 'warn' | 'info' = 'log') => {
+const loopLogEvent = (
+  object: Prisma.LogEvent,
+  status: 'log' | 'err' | 'warn' | 'info' = 'log'
+) => {
   for (const key in object) {
     if (Object.prototype.hasOwnProperty.call(object, key)) {
       const element = object[key];
-      if (status === 'err') logger.error(`[prisma-${status}]: ${key}: ${element}`);
-      if (status === 'log') logger.info(`[prisma-${status}]: ${key}: ${element}`);
-      if (status === 'warn') logger.warn(`[prisma-${status}]: ${key}: ${element}`);
-      if (status === 'info') logger.info(`[prisma-${status}]: ${key}: ${element}`);
+      if (status === 'err')
+        logger.error(`[prisma-${status}]: ${key}: ${element}`);
+      if (status === 'log')
+        logger.info(`[prisma-${status}]: ${key}: ${element}`);
+      if (status === 'warn')
+        logger.warn(`[prisma-${status}]: ${key}: ${element}`);
+      if (status === 'info')
+        logger.info(`[prisma-${status}]: ${key}: ${element}`);
     }
   }
 };

@@ -16,9 +16,9 @@ import Service from '@/lib/service';
 import {
   DEFAULT_DELETED,
   DEFAULT_SUCCESS,
-  DEFAULT_UPDATED
+  DEFAULT_UPDATED,
 } from '@/utils/constants';
-import { ILogQMes } from '@/dto/queue.dto';
+import { type ILogQMes } from '@/dto/queue.dto';
 
 export default class TypeService extends Service {
   private readonly AccessService = new accessService();
@@ -353,10 +353,10 @@ export default class TypeService extends Service {
           roleId: auth.typeId,
           roleName: auth.type?.name,
           device: auth.device,
-          ipAddress: auth.ipAddress
-        }
+          ipAddress: auth.ipAddress,
+        };
 
-        this.addLog([{ flag: `${TypeService.name}`, payload }])
+        this.addLog([{ flag: `${TypeService.name}`, payload }]);
         return {
           messages: ['Peran', DEFAULT_SUCCESS],
           payload: type,
@@ -472,10 +472,10 @@ export default class TypeService extends Service {
           roleId: auth.typeId,
           roleName: auth.type?.name,
           device: auth.device,
-          ipAddress: auth.ipAddress
-        }
+          ipAddress: auth.ipAddress,
+        };
 
-        this.addLog([{ flag: `${TypeService.name}`, payload }])
+        this.addLog([{ flag: `${TypeService.name}`, payload }]);
         return {
           messages: ['Peran', DEFAULT_UPDATED],
         } as IMessages;
@@ -495,7 +495,13 @@ export default class TypeService extends Service {
     auth: IUserAccount,
     id: number
   ): Promise<IApiError | IMessages> {
-    const check = await prisma.userGroup.findMany({ where: { typeId: id, actionCode: 'APPROVED', recordStatus: 'A' } }).catch(e => { throw e })
+    const check = await prisma.userGroup
+      .findMany({
+        where: { typeId: id, actionCode: 'APPROVED', recordStatus: 'A' },
+      })
+      .catch((e) => {
+        throw e;
+      });
     if (check.length > 0)
       throw {
         rawErrors: ['Peran masih digunakan oleh beberapa User'],
@@ -540,10 +546,10 @@ export default class TypeService extends Service {
           roleId: auth.typeId,
           roleName: auth.type?.name,
           device: auth.device,
-          ipAddress: auth.ipAddress
-        }
+          ipAddress: auth.ipAddress,
+        };
 
-        this.addLog([{ flag: `${TypeService.name}`, payload }])
+        this.addLog([{ flag: `${TypeService.name}`, payload }]);
         return {
           messages: ['Peran', DEFAULT_DELETED],
         } as IMessages;

@@ -9,8 +9,6 @@ import {
 import Service from '@/lib/service';
 
 export default class UserService extends Service {
-
-
   /**
    *
    * @param auth
@@ -23,10 +21,7 @@ export default class UserService extends Service {
     matrix: IUserMatrix,
     params: IPagination,
     qs?: IQuerySearch
-  ): Promise<void> {
-
-
-  }
+  ): Promise<void> {}
 
   /**
    *
@@ -34,7 +29,7 @@ export default class UserService extends Service {
    * @returns
    */
   public async me(auth: IUserAccount) {
-    return auth
+    return auth;
   }
 
   /**
@@ -193,10 +188,14 @@ export default class UserService extends Service {
 
     if (menu) return menu;
     else {
-      const options = await prisma.options.findFirst({
-        select: { value: true, key: true },
-        where: { flag: 'unknown-route', value: url, recordStatus: 'A' }
-      }).catch(e => { throw e })
+      const options = await prisma.options
+        .findFirst({
+          select: { value: true, key: true },
+          where: { flag: 'unknown-route', value: url, recordStatus: 'A' },
+        })
+        .catch((e) => {
+          throw e;
+        });
 
       if (!options) return null;
       else return { id: 1, name: options.key, url: options.value };

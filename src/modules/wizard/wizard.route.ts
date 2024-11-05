@@ -15,7 +15,7 @@ router.post(
 );
 router.post(
   '/wizard/execute',
-  rateLimit({ windowMs: windowMs, limit: 5 }),
+  rateLimit({ windowMs, limit: 5 }),
   RequestValidator.validate(ExecWizardDto),
   controller.execute
 );

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import Controller from './log.controller';
 import MatrixValidator from '@/middlewares/matrix-validator';
 import { verifyAccount } from '@/middlewares/auth';
-import { ROLE_ACTION } from '@/enums/role.enum'
+import { ROLE_ACTION } from '@/enums/role.enum';
 
 const router: Router = Router();
 const controller = new Controller();
@@ -21,9 +21,6 @@ router.post(
   controller.add
 );
 
-router.post(
-  '/bull/login',
-  controller.login
-)
+router.post('/bull/login', controller.login);
 
 export default router;

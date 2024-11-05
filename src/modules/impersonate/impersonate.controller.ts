@@ -42,11 +42,9 @@ export default class ImpersonateController extends Api {
     next: NextFunction
   ) => {
     try {
-      const value = await this.service
-        .groups(req.userAccount)
-        .catch((e) => {
-          throw e;
-        });
+      const value = await this.service.groups(req.userAccount).catch((e) => {
+        throw e;
+      });
       this.send(res, value, HttpStatusCode.Ok);
     } catch (error) {
       next(error);

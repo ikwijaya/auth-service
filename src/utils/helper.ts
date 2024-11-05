@@ -46,25 +46,29 @@ export const envFileNotFoundError = (key: CommonEnvKeys): string => {
  * @param seconds
  * @returns
  */
-export const setRedisKV = async (key: string, value: string | number | Buffer, seconds: number) => {
-  if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
+export const setRedisKV = async (
+  key: string,
+  value: string | number | Buffer,
+  seconds: number
+) => {
+  if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`);
   await redisConnection.set(key, value);
   await redisConnection.expire(key, seconds);
-}
+};
 
 /**
-   *
-   * @param key
-   */
+ *
+ * @param key
+ */
 export const getRedisK = async (key: string) => {
   if (!process.env.REDIS_HOST) {
-    logger.warn(`<no-redis-defined>`)
-    return null
+    logger.warn(`<no-redis-defined>`);
+    return null;
   }
 
-  const value = await redisConnection.get(key)
-  return value
-}
+  const value = await redisConnection.get(key);
+  return value;
+};
 
 /**
  *
@@ -73,14 +77,14 @@ export const getRedisK = async (key: string) => {
  */
 export const delRedisK = async (key: string) => {
   if (!process.env.REDIS_HOST) {
-    logger.warn(`<no-redis-defined>`)
-    return null
+    logger.warn(`<no-redis-defined>`);
+    return null;
   }
 
-  const value = await redisConnection.get(key)
-  if (!value) return null
+  const value = await redisConnection.get(key);
+  if (!value) return null;
   await redisConnection.del(key);
-}
+};
 
 /**
  *
@@ -89,11 +93,11 @@ export const delRedisK = async (key: string) => {
  */
 export function convertToSeconds(expiryValue: string): number {
   // Define conversion factors
-  const conversionFactors: { [key: string]: number } = {
-    'd': 86400,  // 1 day = 86400 seconds
-    'h': 3600,   // 1 hour = 3600 seconds
-    'm': 60,     // 1 minute = 60 seconds
-    's': 1       // 1 second = 1 second
+  const conversionFactors: Record<string, number> = {
+    d: 86400, // 1 day = 86400 seconds
+    h: 3600, // 1 hour = 3600 seconds
+    m: 60, // 1 minute = 60 seconds
+    s: 1, // 1 second = 1 second
   };
 
   // Initialize total seconds

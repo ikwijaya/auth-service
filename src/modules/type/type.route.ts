@@ -4,7 +4,7 @@ import RequestValidator from '@/middlewares/request-validator';
 import MatrixValidator from '@/middlewares/matrix-validator';
 import { verifyAccount } from '@/middlewares/auth';
 import { CreateTypeDto, UpdateTypeDto } from '@/dto/type.dto';
-import { ROLE_ACTION } from '@/enums/role.enum'
+import { ROLE_ACTION } from '@/enums/role.enum';
 
 const router: Router = Router();
 const controller = new Controller();

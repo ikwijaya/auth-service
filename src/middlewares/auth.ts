@@ -23,8 +23,8 @@ export const verifyMinimal = async (
   next: NextFunction
 ) => {
   const { headers } = req;
-  const authorization = headers['authorization'];
-  const token = authorization?.split(' ')[1]
+  const authorization = headers.authorization;
+  const token = authorization?.split(' ')[1];
 
   if (!token)
     res
@@ -32,7 +32,7 @@ export const verifyMinimal = async (
       .send({ rawErrors: [TOKEN_FAIL_01] });
   else {
     Jwt.verify(
-      token as string,
+      token,
       process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
       async function (err, verify: IJwtVerify) {
         if (err)
@@ -42,15 +42,22 @@ export const verifyMinimal = async (
             relogin: true,
           } as IApiError);
         else {
-          const ipAddress: string | undefined = req.headers['x-forwarded-for'] as string | undefined ?? req.socket.remoteAddress;
-          const userAgent: string | undefined = req.headers['user-agent']
-          const authValidate = new AuthValidate(process.env.REDIS_SID_TTL, token as string);
-          const _verify: IJwtVerify = await authValidate.minValidate(verify).catch((e) => {
-            throw e;
-          });
+          const ipAddress: string | undefined =
+            (req.headers['x-forwarded-for'] as string | undefined) ??
+            req.socket.remoteAddress;
+          const userAgent: string | undefined = req.headers['user-agent'];
+          const authValidate = new AuthValidate(
+            process.env.REDIS_SID_TTL,
+            token
+          );
+          const _verify: IJwtVerify = await authValidate
+            .minValidate(verify)
+            .catch((e) => {
+              throw e;
+            });
 
-          _verify.device = userAgent
-          _verify.ipAddress = ipAddress
+          _verify.device = userAgent;
+          _verify.ipAddress = ipAddress;
           delete _verify.iat;
           delete _verify.exp;
 
@@ -82,8 +89,8 @@ export const verifyAccount = async (
 ) => {
   const method: string = req.method;
   const { headers } = req;
-  const authorization = headers['authorization'];
-  const token = authorization?.split(' ')[1]
+  const authorization = headers.authorization;
+  const token = authorization?.split(' ')[1];
   const formId = headers.formid as string | undefined;
 
   if (!token)
@@ -105,15 +112,11 @@ export const verifyAccount = async (
             const userId = verify.id;
             const username = verify.username;
             const authValidate = new AuthValidate('10m', token);
-            const { relogin, payload } = await authValidate.validate(
-              userId,
-              token,
-              formId,
-              verify.groupId,
-              username
-            ).catch((e) => {
-              throw e;
-            });
+            const { relogin, payload } = await authValidate
+              .validate(userId, token, formId, verify.groupId, username)
+              .catch((e) => {
+                throw e;
+              });
 
             /**
              * add mechanism, session is destroyed
@@ -128,8 +131,10 @@ export const verifyAccount = async (
                   .status(HttpStatusCode.Unauthorized)
                   .send({ rawErrors: [AUTH_FAIL_01] });
               else {
-                const ipAddress: string | undefined = req.headers['x-forwarded-for'] as string | undefined ?? req.socket.remoteAddress;
-                const userAgent: string | undefined = req.headers['user-agent']
+                const ipAddress: string | undefined =
+                  (req.headers['x-forwarded-for'] as string | undefined) ??
+                  req.socket.remoteAddress;
+                const userAgent: string | undefined = req.headers['user-agent'];
 
                 payload.token = req.jwtToken;
                 payload.ipAddress = ipAddress;

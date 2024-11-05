@@ -1,11 +1,11 @@
 import util from 'util';
 import { type NextFunction, type Request, type Response } from 'express';
 import { HttpStatusCode } from 'axios';
+import chalk from 'chalk';
 import { type ApiError } from '@/lib/errors';
 import logger from '@/lib/logger';
-import chalk from 'chalk';
 
-const chalkRed = chalk.yellow
+const chalkRed = chalk.yellow;
 const errorHandler = (
   err: ApiError,
   req: Request,
@@ -23,7 +23,7 @@ const errorHandler = (
   \nUserAccount: ${util.inspect(req.userAccount)}
   \nUserMatrix: ${util.inspect(req.userMatrix)}
   \nJwtToken: ${util.inspect(req.jwtToken)}
-  \nJwtVerify: ${util.inspect(req.jwtVerify)}`)
+  \nJwtVerify: ${util.inspect(req.jwtVerify)}`);
 
   logger.warn(chalkErr);
   const status: number = err.statusCode ?? HttpStatusCode.InternalServerError;

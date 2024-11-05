@@ -17,7 +17,7 @@ import {
 } from '@/utils/constants';
 import environment from '@/lib/environment';
 import logger from '@/lib/logger';
-import { ILogQMes } from '@/dto/queue.dto';
+import { type ILogQMes } from '@/dto/queue.dto';
 import { convertToSeconds } from '@/utils/helper';
 const maxAttempt: number = 5;
 
@@ -29,7 +29,6 @@ interface ILdapAttr {
 }
 
 export default class AuthService extends Service {
-
   /**
    *
    * @param obj
@@ -42,9 +41,9 @@ export default class AuthService extends Service {
     obj: {
       userId: number;
       roleId: number;
-      roleName: string,
+      roleName: string;
       groupId?: number;
-      groupName?: string,
+      groupName?: string;
       device?: string;
       ipAddress?: string;
     },
@@ -53,7 +52,7 @@ export default class AuthService extends Service {
     ldap: Ldap,
     attempt: number
   ) {
-    const verify = await this.verifyLdap(username, ldap)
+    const verify = await this.verifyLdap(username, ldap);
     if (!verify.valid) throw { rawErrors: [AUTH_FAIL_01] } as IApiError;
 
     const userPassword: string = await aesCbcDecrypt(
@@ -70,7 +69,7 @@ export default class AuthService extends Service {
       userPassword,
       userSearchBase: this.buildDn(ldap),
       usernameAttribute: ldap.filter,
-      username: username,
+      username,
       attributes: ['dn', 'cn', 'mail', 'displayName'],
     };
 
@@ -78,7 +77,13 @@ export default class AuthService extends Service {
      * in production this binding
      * harus bawa user admin as binder
      */
-    const ldapPassword: string = ldap.usePlain ? ldap.password : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH).catch((e) => { throw e; });
+    const ldapPassword: string = ldap.usePlain
+      ? ldap.password
+      : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH).catch(
+          (e) => {
+            throw e;
+          }
+        );
     if (environment.isProd()) {
       options.adminDn = this.buildUserMaster(ldap.username, ldap);
       options.adminPassword = ldapPassword;
@@ -96,18 +101,23 @@ export default class AuthService extends Service {
        */
       const nextLogin: string[] = [];
       if (attempt >= maxAttempt && ldap) {
-        const lockoutTime = verify.valid && verify.entries.length > 0 ? verify.entries[0].lockoutTime : undefined;
+        const lockoutTime =
+          verify.valid && verify.entries.length > 0
+            ? verify.entries[0].lockoutTime
+            : undefined;
         logger.warn(`${AuthService.name}: ${lockoutTime}`);
         if (lockoutTime) {
           const date: Date = this.adConvertTime(lockoutTime as string);
-          logger.error(`login failed ${username}, please relogin after ${date}`);
+          logger.error(
+            `login failed ${username}, please relogin after ${date}`
+          );
           nextLogin.push(`Silakan coba kembali setelah beberapa menit`);
         }
 
         const payload: ILogQMes = {
           serviceName: AuthService.name,
           action: 'bad-login',
-          json: { username: username, lockoutTime },
+          json: { username, lockoutTime },
           message: `${username} failed login: (percobaan: ${attempt}x), kesalahan pada username atau password. lock-time: ${lockoutTime}`,
           createdAt: new Date(),
           createdBy: obj.userId,
@@ -115,10 +125,10 @@ export default class AuthService extends Service {
           roleId: obj.roleId,
           roleName: obj.roleName,
           device: obj.device,
-          ipAddress: obj.ipAddress
-        }
+          ipAddress: obj.ipAddress,
+        };
 
-        this.addLog([{ flag: `${AuthService.name}`, payload }])
+        this.addLog([{ flag: `${AuthService.name}`, payload }]);
         throw {
           stack: environment.isDev() ? verify : e,
           rawErrors: [
@@ -136,7 +146,7 @@ export default class AuthService extends Service {
               updatedAt: new Date(),
               updatedBy: obj.userId,
             },
-          })
+          }),
         ])
         .catch((e) => {
           throw e;
@@ -145,7 +155,7 @@ export default class AuthService extends Service {
       const payload: ILogQMes = {
         serviceName: AuthService.name,
         action: 'bad-login',
-        json: { username: username, groupId: obj.groupId, type: obj.roleName },
+        json: { username, groupId: obj.groupId, type: obj.roleName },
         message: `${username} failed login: (percobaan: ${attempt}x), kesalahan pada username atau password`,
         createdAt: new Date(),
         createdBy: obj.userId,
@@ -153,19 +163,21 @@ export default class AuthService extends Service {
         roleId: obj.roleId,
         roleName: obj.roleName,
         device: obj.device,
-        ipAddress: obj.ipAddress
-      }
+        ipAddress: obj.ipAddress,
+      };
 
-      this.addLog([{ flag: `${AuthService.name}`, payload }])
+      this.addLog([{ flag: `${AuthService.name}`, payload }]);
       throw {
-        rawErrors: [`(percobaan: ${attempt + 1}x), kesalahan pada username atau password`],
+        rawErrors: [
+          `(percobaan: ${attempt + 1}x), kesalahan pada username atau password`,
+        ],
         stack: e,
       } as IApiError;
     });
 
     if (valid) {
-      logger.info(`nice binding for ${username} with DN: ${dn}`)
-      return valid
+      logger.info(`nice binding for ${username} with DN: ${dn}`);
+      return valid;
     } else {
       await prisma
         .$transaction([
@@ -185,7 +197,7 @@ export default class AuthService extends Service {
       const payload: ILogQMes = {
         serviceName: AuthService.name,
         action: 'bad-login',
-        json: { username: username, groupId: obj.groupId },
+        json: { username, groupId: obj.groupId },
         message: `${username} failed login`,
         createdAt: new Date(),
         createdBy: obj.userId,
@@ -193,10 +205,10 @@ export default class AuthService extends Service {
         roleId: obj.roleId,
         roleName: obj.roleName,
         device: obj.device,
-        ipAddress: obj.ipAddress
-      }
+        ipAddress: obj.ipAddress,
+      };
 
-      this.addLog([{ flag: `${AuthService.name}`, payload }])
+      this.addLog([{ flag: `${AuthService.name}`, payload }]);
       throw { rawErrors: [LOGIN_FAIL_01] } as IApiError;
     }
   }
@@ -226,7 +238,7 @@ export default class AuthService extends Service {
         throw e;
       });
 
-    if (user) return user
+    if (user) return user;
     else {
       const payload: ILogQMes = {
         serviceName: AuthService.name,
@@ -235,10 +247,10 @@ export default class AuthService extends Service {
         message: `${obj.username} failed login`,
         createdAt: new Date(),
         device: obj.device,
-        ipAddress: obj.ipAddress
-      }
+        ipAddress: obj.ipAddress,
+      };
 
-      this.addLog([{ flag: `${AuthService.name}`, payload }])
+      this.addLog([{ flag: `${AuthService.name}`, payload }]);
       throw { rawErrors: [LOGIN_FAIL_00] } as IApiError;
     }
   }
@@ -264,20 +276,27 @@ export default class AuthService extends Service {
           groupId: true,
           group: { select: { name: true } },
           typeId: true,
-          type: { select: { name: true, mode: true, flag: true } }
+          type: { select: { name: true, mode: true, flag: true } },
         },
         where: {
           userId: user.id,
           recordStatus: 'A',
-          actionCode: 'APPROVED'
+          actionCode: 'APPROVED',
         },
         orderBy: {
-          checkedAt: 'desc'
-        }
+          checkedAt: 'desc',
+        },
       })
-      .catch(e => { throw e })
-    if (!userGroup) throw { rawErrors: ["You not have default group to login, please select group before login"] } as IApiError;
-    else return { user, userGroup }
+      .catch((e) => {
+        throw e;
+      });
+    if (!userGroup)
+      throw {
+        rawErrors: [
+          'You not have default group to login, please select group before login',
+        ],
+      } as IApiError;
+    else return { user, userGroup };
   }
 
   /**
@@ -285,16 +304,27 @@ export default class AuthService extends Service {
    * @param obj
    */
   public async login(obj: LoginDto) {
-    const { user, userGroup } = await this.withoutGroup(obj).catch(e => { throw e })
+    const { user, userGroup } = await this.withoutGroup(obj).catch((e) => {
+      throw e;
+    });
 
-    if (!user.ldap) throw { rawErrors: ["Your account is not provided by active directory forest"] } as IApiError;
-    const valid = await this.binding({
-      userId: user.id,
-      roleId: userGroup.typeId,
-      roleName: userGroup.type.name,
-      groupId: userGroup.groupId,
-      groupName: userGroup.group.name,
-    }, obj.username, obj.password, user.ldap, user.attempt);
+    if (!user.ldap)
+      throw {
+        rawErrors: ['Your account is not provided by active directory forest'],
+      } as IApiError;
+    const valid = await this.binding(
+      {
+        userId: user.id,
+        roleId: userGroup.typeId,
+        roleName: userGroup.type.name,
+        groupId: userGroup.groupId,
+        groupName: userGroup.group.name,
+      },
+      obj.username,
+      obj.password,
+      user.ldap,
+      user.attempt
+    );
 
     const token = Jwt.sign(
       {
@@ -329,7 +359,9 @@ export default class AuthService extends Service {
          * only for production
          */
         if (environment.isProd()) {
-          logger.info(`Multiple session is disable, cause env is ${environment.env}`);
+          logger.info(
+            `Multiple session is disable, cause env is ${environment.env}`
+          );
           const lastSessions = await tx.session
             .findMany({ where: { userId: user.id, recordStatus: 'A' } })
             .catch((e) => {
@@ -350,7 +382,9 @@ export default class AuthService extends Service {
               throw e;
             });
         } else
-          logger.info(`Multiple session is enable, cause env is ${environment.env}`);
+          logger.info(
+            `Multiple session is enable, cause env is ${environment.env}`
+          );
 
         /**
          * handle create new session
@@ -365,11 +399,20 @@ export default class AuthService extends Service {
           },
         });
 
-        await this.setRedisKV("sid_" + obj.username, token, convertToSeconds(process.env.JWT_EXPIRE));
+        await this.setRedisKV(
+          'sid_' + obj.username,
+          token,
+          convertToSeconds(process.env.JWT_EXPIRE)
+        );
         const payload: ILogQMes = {
           serviceName: AuthService.name,
           action: 'login',
-          json: { username: obj.username, groupId: obj.groupId, type: userGroup.type, fullname: user.fullname },
+          json: {
+            username: obj.username,
+            groupId: obj.groupId,
+            type: userGroup.type,
+            fullname: user.fullname,
+          },
           message: `${obj.username} success login`,
           createdAt: new Date(),
           createdBy: user.id,
@@ -377,10 +420,10 @@ export default class AuthService extends Service {
           roleId: userGroup.typeId,
           roleName: userGroup.type?.name,
           device: obj.device,
-          ipAddress: obj.ipAddress
-        }
+          ipAddress: obj.ipAddress,
+        };
 
-        this.addLog([{ flag: `${AuthService.name}`, payload }])
+        this.addLog([{ flag: `${AuthService.name}`, payload }]);
       })
       .catch((e) => {
         throw e;
@@ -389,7 +432,7 @@ export default class AuthService extends Service {
     return {
       accessToken: 'Bearer ' + token,
       expiresIn: process.env.JWT_EXPIRE,
-      groupId: obj.groupId
+      groupId: obj.groupId,
     } as LoginResDto;
   }
 
@@ -423,7 +466,7 @@ export default class AuthService extends Service {
      * thats means this user has assign to some group before
      * and this user has waiting for new group after
      */
-    const findUserGroup: { id: number }[] = await prisma.$queryRaw`
+    const findUserGroup: Array<{ id: number }> = await prisma.$queryRaw`
       SELECT  a."id"
       FROM    "UserGroup" as a
       INNER JOIN (
@@ -433,29 +476,40 @@ export default class AuthService extends Service {
         GROUP BY b."userId", b."groupId"
       ) as ib ON a."userId" = ib."userId" AND a."groupId" = ib."groupId" AND a."checkedAt" = ib."maxdate"
       WHERE   a."recordStatus" = 'A' AND a."actionCode" = 'APPROVED';
-    `
+    `;
 
-    const userGroup = await prisma.userGroup.findMany({
-      select: {
-        userId: true,
-        groupId: true,
-        typeId: true,
-        user: { select: { username: true, fullname: true, email: true } },
-        group: { select: { name: true } },
-        type: { select: { name: true, mode: true, flag: true } },
-      },
-      where: { id: { in: findUserGroup.map(e => e.id) }, userId: user.id }
-    }).catch(e => { throw e })
+    const userGroup = await prisma.userGroup
+      .findMany({
+        select: {
+          userId: true,
+          groupId: true,
+          typeId: true,
+          user: { select: { username: true, fullname: true, email: true } },
+          group: { select: { name: true } },
+          type: { select: { name: true, mode: true, flag: true } },
+        },
+        where: { id: { in: findUserGroup.map((e) => e.id) }, userId: user.id },
+      })
+      .catch((e) => {
+        throw e;
+      });
 
-    const gIds = userGroup.map(e => e.groupId)
-    const groups = await prisma.group.findMany({
-      select: { id: true, name: true },
-      where: {
-        id: { in: gIds }
-      }
-    }).catch(e => { throw e })
+    const gIds = userGroup.map((e) => e.groupId);
+    const groups = await prisma.group
+      .findMany({
+        select: { id: true, name: true },
+        where: {
+          id: { in: gIds },
+        },
+      })
+      .catch((e) => {
+        throw e;
+      });
 
-    return { messages: [], payload: { groups: Array.from(new Set(groups)) } } as IMessages
+    return {
+      messages: [],
+      payload: { groups: Array.from(new Set(groups)) },
+    } as IMessages;
   }
 
   /**
@@ -471,7 +525,7 @@ export default class AuthService extends Service {
             select: {
               username: true,
               email: true,
-              fullname: true
+              fullname: true,
             },
           },
         },
@@ -498,7 +552,7 @@ export default class AuthService extends Service {
           throw e;
         });
 
-      await this.delRedisK("sid_" + user.user.username)
+      await this.delRedisK('sid_' + user.user.username);
       const payload: ILogQMes = {
         serviceName: AuthService.name,
         action: 'logout',
@@ -506,10 +560,10 @@ export default class AuthService extends Service {
         message: `${user.user.fullname} is logged out`,
         createdAt: new Date(),
         createdBy: user.userId,
-        createdUsername: user.user.username
-      }
+        createdUsername: user.user.username,
+      };
 
-      this.addLog([{ flag: `${AuthService.name}`, payload }])
+      this.addLog([{ flag: `${AuthService.name}`, payload }]);
       return { messages: [] } as IMessages;
     }
   }
@@ -527,10 +581,10 @@ export default class AuthService extends Service {
     const ldapPassword: string = ldap.usePlain
       ? ldap.password
       : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH).catch(
-        (e) => {
-          throw e;
-        }
-      );
+          (e) => {
+            throw e;
+          }
+        );
 
     const client = new Client({
       url: ldap.url,

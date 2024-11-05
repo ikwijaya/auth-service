@@ -1,6 +1,8 @@
 import { HttpStatusCode } from 'axios';
 
-export function isAPIError(obj: any): obj is IApiError { return true }
+export function isAPIError(obj: any): obj is IApiError {
+  return true;
+}
 export interface IApiError extends Error {
   statusCode: number;
   rawErrors?: string[];

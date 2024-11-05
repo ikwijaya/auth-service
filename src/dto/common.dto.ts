@@ -84,7 +84,7 @@ export interface IJwtVerify {
   email?: string;
   fullname?: string;
   type: string;
-  method: 'original' | 'impersonate'
+  method: 'original' | 'impersonate';
   privilegeName?: string;
   privilegeMode?: string;
   groupId: number;
@@ -198,10 +198,10 @@ export class RejectDto {
 }
 
 export interface IWorkerApi {
-  method: string | 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+  method: string | 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   path: string;
   body: unknown;
-  headers: Record<string, unknown>
+  headers: Record<string, unknown>;
 }
 
 export interface ITierLimit {

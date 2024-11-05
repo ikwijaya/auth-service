@@ -1,15 +1,15 @@
-import environment from "@/lib/environment";
-import { IApiError } from "@/lib/errors";
-import prisma from "@/lib/prisma";
-import { aesCbcDecrypt, generateRandomString } from "@/lib/security";
-import { AUTH_FAIL_01 } from "@/utils/constants";
-import { Ldap } from "@prisma/client";
-import { HttpStatusCode } from "axios";
-import { AuthenticationOptions, authenticate } from "ldap-authentication";
-import { Entry, Client } from "ldapts";
-import redisConnection from "@/lib/ioredis";
-import { convertToSeconds } from "@/utils/helper";
-import { IBullLoginDto } from "@/dto/bull.dto";
+import { type Ldap } from '@prisma/client';
+import { HttpStatusCode } from 'axios';
+import { type AuthenticationOptions, authenticate } from 'ldap-authentication';
+import { type Entry, Client } from 'ldapts';
+import environment from '@/lib/environment';
+import { type IApiError } from '@/lib/errors';
+import prisma from '@/lib/prisma';
+import { aesCbcDecrypt, generateRandomString } from '@/lib/security';
+import { AUTH_FAIL_01 } from '@/utils/constants';
+import redisConnection from '@/lib/ioredis';
+import { convertToSeconds } from '@/utils/helper';
+import { type IBullLoginDto } from '@/dto/bull.dto';
 
 interface ILdapAttr {
   dn?: string;
@@ -25,34 +25,42 @@ export class BullService {
    * @param password
    */
   public async get(obj: IBullLoginDto) {
-    const ldap = await prisma.ldap.findFirst().catch(e => { throw e })
+    const ldap = await prisma.ldap.findFirst().catch((e) => {
+      throw e;
+    });
 
-    console.log(ldap)
-    if (!ldap) throw { rawErrors: ["No LDAP found"] } as IApiError
-    const binding = await this.binding(obj.username, obj.password, ldap).catch(e => { throw e })
+    console.log(ldap);
+    if (!ldap) throw { rawErrors: ['No LDAP found'] } as IApiError;
+    const binding = await this.binding(obj.username, obj.password, ldap).catch(
+      (e) => {
+        throw e;
+      }
+    );
 
-    console.log(binding)
-    if (!binding) throw { rawErrors: ["No User in LDAP"] } as IApiError
+    console.log(binding);
+    if (!binding) throw { rawErrors: ['No User in LDAP'] } as IApiError;
 
     const user = await prisma.bullUser
       .findFirst({
         select: { username: true, role: true },
-        where: { username: obj.username, recordStatus: 'A' }
+        where: { username: obj.username, recordStatus: 'A' },
       })
-      .catch(e => { throw e })
+      .catch((e) => {
+        throw e;
+      });
 
-    console.log(user)
+    console.log(user);
 
-    if (!user) throw { rawErrors: ["User is not whitelisted"] } as IApiError
-    const uniqueStr: string = generateRandomString(64, 'ABCDEFGHIJKL')
-    const seconds: number = convertToSeconds("8h")
-    await redisConnection.set('_mon_', uniqueStr + '_' + Date.now())
+    if (!user) throw { rawErrors: ['User is not whitelisted'] } as IApiError;
+    const uniqueStr: string = generateRandomString(64, 'ABCDEFGHIJKL');
+    const seconds: number = convertToSeconds('8h');
+    await redisConnection.set('_mon_', uniqueStr + '_' + Date.now());
     await redisConnection.expire('_mon_', seconds);
 
-    await redisConnection.set('_mon_role', user.role)
-    await redisConnection.expire('_mon_role', seconds)
+    await redisConnection.set('_mon_role', user.role);
+    await redisConnection.expire('_mon_role', seconds);
 
-    return user
+    return user;
   }
 
   /**
@@ -68,10 +76,10 @@ export class BullService {
     const ldapPassword: string = ldap.usePlain
       ? ldap.password
       : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH).catch(
-        (e) => {
-          throw e;
-        }
-      );
+          (e) => {
+            throw e;
+          }
+        );
 
     const client = new Client({
       url: ldap.url,
@@ -139,12 +147,8 @@ export class BullService {
    * @param ldap
    * @param attempt
    */
-  private async binding(
-    username: string,
-    password: string,
-    ldap: Ldap
-  ) {
-    const verify = await this.verifyLdap(username, ldap)
+  private async binding(username: string, password: string, ldap: Ldap) {
+    const verify = await this.verifyLdap(username, ldap);
     if (!verify.valid) throw { rawErrors: [AUTH_FAIL_01] } as IApiError;
 
     const dn = verify.entries.length > 0 ? verify.entries[0].dn : undefined;
@@ -154,7 +158,7 @@ export class BullService {
       userPassword: password,
       userSearchBase: this.buildDn(ldap),
       usernameAttribute: ldap.filter,
-      username: username,
+      username,
       attributes: ['dn', 'cn', 'mail', 'displayName'],
     };
 
@@ -162,7 +166,13 @@ export class BullService {
      * in production this binding
      * harus bawa user admin as binder
      */
-    const ldapPassword: string = ldap.usePlain ? ldap.password : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH).catch((e) => { throw e; });
+    const ldapPassword: string = ldap.usePlain
+      ? ldap.password
+      : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH).catch(
+          (e) => {
+            throw e;
+          }
+        );
     if (environment.isProd()) {
       options.adminDn = this.buildUserMaster(ldap.username, ldap);
       options.adminPassword = ldapPassword;
@@ -174,11 +184,11 @@ export class BullService {
     const valid: ILdapAttr | null | undefined = await authenticate(
       options
     ).catch(async (e) => {
-      throw { rawErrors: [`Bad login`], stack: e, } as IApiError;
+      throw { rawErrors: [`Bad login`], stack: e } as IApiError;
     });
 
-    if (valid) return valid
-    else throw { rawErrors: ["Bad login"] } as IApiError;
+    if (valid) return valid;
+    else throw { rawErrors: ['Bad login'] } as IApiError;
   }
 
   /**

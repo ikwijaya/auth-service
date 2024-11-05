@@ -16,7 +16,7 @@ import {
   DEFAULT_SUCCESS,
   DEFAULT_UPDATED,
 } from '@/utils/constants';
-import { ILogQMes } from '@/dto/queue.dto';
+import { type ILogQMes } from '@/dto/queue.dto';
 
 export default class GroupService extends Service {
   /**
@@ -231,10 +231,10 @@ export default class GroupService extends Service {
           roleId: auth.typeId,
           roleName: auth.type?.name,
           device: auth.device,
-          ipAddress: auth.ipAddress
-        }
+          ipAddress: auth.ipAddress,
+        };
 
-        this.addLog([{ flag: `${GroupService.name}`, payload }])
+        this.addLog([{ flag: `${GroupService.name}`, payload }]);
         return {
           messages: ['Grup', DEFAULT_SUCCESS],
           payload: group,
@@ -288,10 +288,10 @@ export default class GroupService extends Service {
           roleId: auth.typeId,
           roleName: auth.type?.name,
           device: auth.device,
-          ipAddress: auth.ipAddress
-        }
+          ipAddress: auth.ipAddress,
+        };
 
-        this.addLog([{ flag: `${GroupService.name}`, payload }])
+        this.addLog([{ flag: `${GroupService.name}`, payload }]);
         return {
           messages: ['Grup', DEFAULT_UPDATED],
         } as IMessages;
@@ -311,8 +311,14 @@ export default class GroupService extends Service {
     auth: IUserAccount,
     id: number
   ): Promise<IApiError | IMessages> {
-    const check = await prisma.userGroup.findMany({ where: { groupId: id, actionCode: 'APPROVED', recordStatus: 'A' } }).catch(e => { throw e })
-    if (check.length > 0) 
+    const check = await prisma.userGroup
+      .findMany({
+        where: { groupId: id, actionCode: 'APPROVED', recordStatus: 'A' },
+      })
+      .catch((e) => {
+        throw e;
+      });
+    if (check.length > 0)
       throw {
         rawErrors: ['Group masih digunakan oleh beberapa user'],
       } as IApiError;
@@ -352,10 +358,10 @@ export default class GroupService extends Service {
           roleId: auth.typeId,
           roleName: auth.type?.name,
           device: auth.device,
-          ipAddress: auth.ipAddress
-        }
+          ipAddress: auth.ipAddress,
+        };
 
-        this.addLog([{ flag: `${GroupService.name}`, payload }])
+        this.addLog([{ flag: `${GroupService.name}`, payload }]);
         return {
           messages: ['Grup', DEFAULT_DELETED],
         } as IMessages;

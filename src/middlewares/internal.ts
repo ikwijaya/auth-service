@@ -15,8 +15,8 @@ export const verifyInternalToken = async (
   next: NextFunction
 ) => {
   const { headers } = req;
-  const authorization = headers['authorization'];
-  const token = authorization?.split(' ')[1]
+  const authorization = headers.authorization;
+  const token = authorization?.split(' ')[1];
 
   if (!token)
     res
@@ -24,7 +24,7 @@ export const verifyInternalToken = async (
       .send({ rawErrors: [TOKEN_FAIL_01] });
   else {
     Jwt.verify(
-      token as string,
+      token,
       process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
       function (err) {
         if (err)
@@ -32,7 +32,7 @@ export const verifyInternalToken = async (
             .status(HttpStatusCode.BadGateway)
             .send({ rawErrors: [err.message] });
         else {
-          req.jwtToken = token as string;
+          req.jwtToken = token;
           next();
         }
       }

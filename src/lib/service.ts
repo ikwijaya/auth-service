@@ -1,9 +1,9 @@
-import { ILogQMes, INotifQMes } from '@/dto/queue.dto';
-import logger from './logger';
-import prisma from '@/lib/prisma';
 import { Queue } from 'bullmq';
 import { Prisma } from '@prisma/client';
+import logger from './logger';
 import redisConnection from './ioredis';
+import prisma from '@/lib/prisma';
+import { type ILogQMes, type INotifQMes } from '@/dto/queue.dto';
 
 /**
  * `Api` Represents an abstract base class for common expressJS API operations.
@@ -40,7 +40,7 @@ abstract class Service {
      * thats means this user has assign to some group before
      * and this user has waiting for new group after
      */
-    const findUserGroup: { id: number }[] = await prisma.$queryRaw`
+    const findUserGroup: Array<{ id: number }> = await prisma.$queryRaw`
       SELECT  a."id"
       FROM    "UserGroup" as a
       INNER JOIN (
@@ -49,23 +49,29 @@ abstract class Service {
         WHERE   b."actionCode" = 'APPROVED' AND b."recordStatus" = 'A'
         GROUP BY b."userId", b."groupId"
       ) as ib ON a."userId" = ib."userId" AND a."groupId" = ib."groupId" AND a."checkedAt" = ib."maxdate"
-      WHERE   a."typeId" IN (${Prisma.join(type.map(e => e.typeId).filter(this.notEmpty))})
+      WHERE   a."typeId" IN (${Prisma.join(
+        type.map((e) => e.typeId).filter(this.notEmpty)
+      )})
               AND a."recordStatus" = 'A' AND a."actionCode" = 'APPROVED';
-    `
+    `;
 
-    const userGroup = await prisma.userGroup.findMany({
-      select: {
-        userId: true,
-        groupId: true,
-        typeId: true,
-        user: { select: { username: true, fullname: true, email: true } },
-        group: { select: { name: true } },
-        type: { select: { name: true, mode: true, flag: true } },
-      },
-      where: { groupId, id: { in: findUserGroup.map(e => e.id) } }
-    }).catch(e => { throw e })
+    const userGroup = await prisma.userGroup
+      .findMany({
+        select: {
+          userId: true,
+          groupId: true,
+          typeId: true,
+          user: { select: { username: true, fullname: true, email: true } },
+          group: { select: { name: true } },
+          type: { select: { name: true, mode: true, flag: true } },
+        },
+        where: { groupId, id: { in: findUserGroup.map((e) => e.id) } },
+      })
+      .catch((e) => {
+        throw e;
+      });
 
-    return userGroup
+    return userGroup;
   }
 
   /**
@@ -105,7 +111,7 @@ abstract class Service {
      * thats means this user has assign to some group before
      * and this user has waiting for new group after
      */
-    const findUserGroup: { id: number }[] = await prisma.$queryRaw`
+    const findUserGroup: Array<{ id: number }> = await prisma.$queryRaw`
       SELECT  a."id"
       FROM    "UserGroup" as a
       INNER JOIN (
@@ -116,31 +122,35 @@ abstract class Service {
       ) as ib ON a."userId" = ib."userId" AND a."groupId" = ib."groupId" AND a."checkedAt" = ib."maxdate"
       WHERE   a."typeId" IN (${Prisma.join(typeIds)})
               AND a."recordStatus" = 'A' AND a."actionCode" = 'APPROVED';
-    `
+    `;
 
-    const userGroup = await prisma.userGroup.findMany({
-      select: {
-        userId: true,
-        groupId: true,
-        typeId: true,
-        user: { select: { username: true, fullname: true, email: true } },
-        group: { select: { name: true } },
-        type: { select: { name: true, mode: true, flag: true } },
-      },
-      where: { id: { in: findUserGroup.map(e => e.id) } }
-    }).catch(e => { throw e })
+    const userGroup = await prisma.userGroup
+      .findMany({
+        select: {
+          userId: true,
+          groupId: true,
+          typeId: true,
+          user: { select: { username: true, fullname: true, email: true } },
+          group: { select: { name: true } },
+          type: { select: { name: true, mode: true, flag: true } },
+        },
+        where: { id: { in: findUserGroup.map((e) => e.id) } },
+      })
+      .catch((e) => {
+        throw e;
+      });
 
-    return userGroup
+    return userGroup;
   }
 
   /**
    *
    * @param data
    */
-  public async addLog(data: { flag: string, payload: ILogQMes }[]) {
-    if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
+  public async addLog(data: Array<{ flag: string; payload: ILogQMes }>) {
+    if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`);
 
-    const now = Date.now()
+    const now = Date.now();
     const queue = new Queue('AppLog', {
       connection: redisConnection,
       defaultJobOptions: {
@@ -149,22 +159,26 @@ abstract class Service {
         attempts: 3,
         backoff: {
           type: 'exponential',
-          delay: 1000
-        }
-      }
-    })
-    data.forEach(e => queue.add(`log-${e.flag}-${now}`, e.payload));
-    queue.on('error', (err) => logger.warn(`${Service.name} addLog: ${err.message}`));
+          delay: 1000,
+        },
+      },
+    });
+    data.forEach(
+      async (e) => await queue.add(`log-${e.flag}-${now}`, e.payload)
+    );
+    queue.on('error', (err) =>
+      logger.warn(`${Service.name} addLog: ${err.message}`)
+    );
   }
 
   /**
    *
    * @param data
    */
-  public async addNotif(data: { flag: string, payload: INotifQMes }[]) {
-    if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
+  public async addNotif(data: Array<{ flag: string; payload: INotifQMes }>) {
+    if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`);
 
-    const now = Date.now()
+    const now = Date.now();
     const queue = new Queue('AppNotif', {
       connection: redisConnection,
       defaultJobOptions: {
@@ -173,12 +187,16 @@ abstract class Service {
         attempts: 3,
         backoff: {
           type: 'exponential',
-          delay: 1000
-        }
-      }
-    })
-    data.forEach(e => queue.add(`not-${e.flag}-${now}`, e.payload));
-    queue.on('error', (err) => logger.warn(`${Service.name} addNotif: ${err.message}`));
+          delay: 1000,
+        },
+      },
+    });
+    data.forEach(
+      async (e) => await queue.add(`not-${e.flag}-${now}`, e.payload)
+    );
+    queue.on('error', (err) =>
+      logger.warn(`${Service.name} addNotif: ${err.message}`)
+    );
   }
 
   /**
@@ -188,8 +206,12 @@ abstract class Service {
    * @param seconds num of expires in second
    * @returns
    */
-  public async setRedisKV(key: string, value: string | number | Buffer, seconds: number) {
-    if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`)
+  public async setRedisKV(
+    key: string,
+    value: string | number | Buffer,
+    seconds: number
+  ) {
+    if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`);
     await redisConnection.set(key, value);
     await redisConnection.expire(key, seconds);
   }
@@ -200,11 +222,11 @@ abstract class Service {
    */
   public async getRedisK(key: string) {
     if (!process.env.REDIS_HOST) {
-      logger.warn(`<no-redis-defined>`)
-      return null
+      logger.warn(`<no-redis-defined>`);
+      return null;
     }
-    const value = await redisConnection.get(key)
-    return value
+    const value = await redisConnection.get(key);
+    return value;
   }
 
   /**
@@ -214,12 +236,12 @@ abstract class Service {
    */
   public async delRedisK(key: string) {
     if (!process.env.REDIS_HOST) {
-      logger.warn(`<no-redis-defined>`)
-      return null
+      logger.warn(`<no-redis-defined>`);
+      return null;
     }
 
-    const value = await redisConnection.get(key)
-    if (!value) return null
+    const value = await redisConnection.get(key);
+    if (!value) return null;
     await redisConnection.del(key);
   }
 }

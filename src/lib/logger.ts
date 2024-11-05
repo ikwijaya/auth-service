@@ -7,13 +7,13 @@ import {
   transports,
 } from 'winston';
 import { LoggingWinston } from '@google-cloud/logging-winston';
-import environment from './environment';
-import { LOG_DATE_FORMAT } from '@/utils/constants';
-import appConfig from '@/config/app.config';
 import chalk from 'chalk';
 import { Queue } from 'bullmq';
-import { ILogQMes } from '@/dto/queue.dto';
+import environment from './environment';
 import redisConnection from './ioredis';
+import { LOG_DATE_FORMAT } from '@/utils/constants';
+import appConfig from '@/config/app.config';
+import { type ILogQMes } from '@/dto/queue.dto';
 
 const GOOGLE_PROJECT_ID = process.env.GOOGLE_PROJECT_ID;
 const logTransports: transport[] = [new transports.Console()];
@@ -66,10 +66,10 @@ const addSysLog = (level: string, message: any) => {
       serviceName: process.env.APP_NAME,
       action: `${level}`,
       json: {},
-      message: message
-    }
+      message,
+    };
 
-    const now = Date.now()
+    const now = Date.now();
     const queue = new Queue('syslog', {
       connection: redisConnection,
       defaultJobOptions: {
@@ -78,15 +78,15 @@ const addSysLog = (level: string, message: any) => {
         attempts: 3,
         backoff: {
           type: 'exponential',
-          delay: 1000
-        }
-      }
-    })
+          delay: 1000,
+        },
+      },
+    });
 
-    queue.add(`syslog-${now}`, value)
+    queue.add(`syslog-${now}`, value);
     queue.on('error', (err) => logger.warn(`Logger: ${err.message}`));
   }
-}
+};
 
 const { printf, combine, label, timestamp, json, prettyPrint } = format;
 const logFormattter = printf(({ level, message, label, timestamp }) => {
@@ -95,12 +95,14 @@ const logFormattter = printf(({ level, message, label, timestamp }) => {
 
     // print in cli
     const labelPrint = environment.isProd() ? chalk.bgYellow : chalk.green.bold;
-    const levelPrint = ['error', 'err'].includes(level) ? chalk.red.bold :
-      ['warn', 'warning'].includes(level) ? chalk.yellow.italic
-        : chalk.italic.grey;
-    return `[${labelPrint(String(label).toUpperCase())}] ${String(timestamp)} ${levelPrint(level)}: ${String(
-      message
-    )}`;
+    const levelPrint = ['error', 'err'].includes(level)
+      ? chalk.red.bold
+      : ['warn', 'warning'].includes(level)
+      ? chalk.yellow.italic
+      : chalk.italic.grey;
+    return `[${labelPrint(String(label).toUpperCase())}] ${String(
+      timestamp
+    )} ${levelPrint(level)}: ${String(message)}`;
   } catch (error) {
     return chalk.bgGrey.italic(`<not-defined>`);
   }

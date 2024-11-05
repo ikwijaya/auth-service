@@ -3,7 +3,7 @@ import { HttpBadRequestError } from '@/lib/errors';
 import logger from '@/lib/logger';
 import { type IUserAccount } from '@/dto/common.dto';
 import { PRIV_FAIL_00, PRIV_FAIL_01 } from '@/utils/constants';
-import { type ROLE_USER } from '@/enums/role.enum'
+import { type ROLE_USER } from '@/enums/role.enum';
 
 export default class PrivilegeValidator {
   static validate = (privilegesType: ROLE_USER[]) => {

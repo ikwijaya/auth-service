@@ -2,8 +2,8 @@
 // Added TypeScript support and changed deprecated functions (e.g. btoa in Node.js)
 import crypto from 'crypto';
 import exRateLimit from 'express-rate-limit';
+import { RedisStore } from 'rate-limit-redis';
 import { type IApiError } from './errors';
-import { RedisStore } from 'rate-limit-redis'
 import redisConnection from './ioredis';
 
 /**
@@ -117,7 +117,7 @@ export function generateRandomString(
 interface IRateLimit {
   windowMs: number | undefined;
   limit: number | undefined;
-  skip?: string[]
+  skip?: string[];
 }
 /**
  *
@@ -127,24 +127,31 @@ interface IRateLimit {
 export function rateLimit(options: IRateLimit) {
   if (process.env.REDIS_HOST)
     return exRateLimit({
-      skip: (req, res) => options.skip ? options.skip.includes(req.ip) : false,
+      skip: (req, res) =>
+        options.skip ? options.skip.includes(req.ip) : false,
       windowMs: options.windowMs,
       limit: options.limit,
       standardHeaders: true,
       legacyHeaders: false,
-      message: { rawErrors: ['Terlalu banyak permintaan, silakan coba lagi nanti'] } as IApiError,
+      message: {
+        rawErrors: ['Terlalu banyak permintaan, silakan coba lagi nanti'],
+      } as IApiError,
       store: new RedisStore({
         // @ts-expect-error - Known issue: the `call` function is not present in @types/ioredis
-        sendCommand: (...args: string[]) => redisConnection.call(...args)
-      })
+        sendCommand: async (...args: string[]) =>
+          await redisConnection.call(...args),
+      }),
     });
   else
     return exRateLimit({
-      skip: (req, res) => options.skip ? options.skip.includes(req.ip) : false,
+      skip: (req, res) =>
+        options.skip ? options.skip.includes(req.ip) : false,
       windowMs: options.windowMs,
       limit: options.limit,
       standardHeaders: true,
       legacyHeaders: false,
-      message: { rawErrors: ['Terlalu banyak permintaan, silakan coba lagi nanti'] } as IApiError,
+      message: {
+        rawErrors: ['Terlalu banyak permintaan, silakan coba lagi nanti'],
+      } as IApiError,
     });
 }

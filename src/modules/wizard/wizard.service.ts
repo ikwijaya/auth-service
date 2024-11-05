@@ -8,7 +8,7 @@ import {
 } from '@/dto/wizard.dto';
 import { type IMessages } from '@/dto/common.dto';
 import Service from '@/lib/service';
-import { ILogQMes } from '@/dto/queue.dto';
+import { type ILogQMes } from '@/dto/queue.dto';
 
 interface LdapWizardRes {
   id: number;
@@ -141,11 +141,14 @@ export default class WizardService extends Service {
           const payload: ILogQMes = {
             serviceName: WizardService.name,
             action: 'sys-execute',
-            json: { token: obj.token, json: { id: obj.json.id, username: obj.json.username } },
-            message: 'wizard is processed for change identity of ldap auth'
-          }
-    
-          this.addLog([{ flag: WizardService.name, payload }])
+            json: {
+              token: obj.token,
+              json: { id: obj.json.id, username: obj.json.username },
+            },
+            message: 'wizard is processed for change identity of ldap auth',
+          };
+
+          this.addLog([{ flag: WizardService.name, payload }]);
         })
         .catch((e) => {
           throw e;

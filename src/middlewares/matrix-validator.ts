@@ -2,12 +2,9 @@ import { type Request, type Response, type NextFunction } from 'express';
 import { HttpBadRequestError } from '@/lib/errors';
 import logger from '@/lib/logger';
 import prisma from '@/lib/prisma';
-import {
-  type IUserMatrix,
-  type IUserAccount,
-} from '@/dto/common.dto';
+import { type IUserMatrix, type IUserAccount } from '@/dto/common.dto';
 import { MATRIX_FAIL_01, MATRIX_FAIL_03 } from '@/utils/constants';
-import { ROLE_ACTION } from '@/enums/role.enum'
+import { ROLE_ACTION } from '@/enums/role.enum';
 
 export default class MatrixValidator {
   static validate = (roleAction: ROLE_ACTION = ROLE_ACTION.read) => {
@@ -35,8 +32,8 @@ export default class MatrixValidator {
               throw e;
             });
 
-            logger.info('matrix ' + auth.username)
-            logger.info(JSON.stringify(matrix.userMatrix))
+            logger.info('matrix ' + auth.username);
+            logger.info(JSON.stringify(matrix.userMatrix));
 
             if (matrix.isAllow && matrix.userMatrix) {
               req.userMatrix = matrix.userMatrix;

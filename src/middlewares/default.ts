@@ -61,7 +61,7 @@ export const verifyApiKey = async (
       .status(HttpStatusCode.Unauthorized)
       .send({ rawErrors: [AUTH_BAD_00] } as IApiError);
   else {
-    if (apikey == API_KEY) next()
+    if (apikey == API_KEY) next();
     else
       res.status(HttpStatusCode.Unauthorized).send({
         rawErrors: [AUTH_BAD_01],

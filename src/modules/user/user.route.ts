@@ -2,7 +2,7 @@ import { Router } from 'express';
 import Controller from './user.controller';
 import MatrixValidator from '@/middlewares/matrix-validator';
 import { verifyAccount } from '@/middlewares/auth';
-import { ROLE_ACTION } from '@/enums/role.enum'
+import { ROLE_ACTION } from '@/enums/role.enum';
 
 const router: Router = Router();
 const controller = new Controller();

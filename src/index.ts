@@ -1,7 +1,7 @@
 import server from './server';
 import logger from './lib/logger';
-import prismaClient from '@/lib/prisma';
 import redisConnection from './lib/ioredis';
+import prismaClient from '@/lib/prisma';
 
 server.listen(process.env.PORT, () => {
   logger.info(

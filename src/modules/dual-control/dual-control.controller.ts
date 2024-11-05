@@ -3,7 +3,7 @@ import { HttpStatusCode } from 'axios';
 import DualControlService from '@/modules/dual-control/dual-control.service';
 import { type CustomResponse } from '@/types/common.type';
 import Api from '@/lib/api';
-import { EmailResponderDto } from '@/dto/checker.dto';
+import { type EmailResponderDto } from '@/dto/checker.dto';
 
 export default class DualController extends Api {
   private readonly service = new DualControlService();
