@@ -26,6 +26,11 @@ enum rowAction {
   DELETE
 }
 
+enum bullRole {
+  ro
+  rw
+}
+
 model User {
   id               Int         @id @default(autoincrement())
   ldapId           Int?
@@ -271,4 +276,12 @@ model RateLimit {
   device    String?
   ipAddress String?
   apiKey    String?
+}
+
+model BullUser {
+  id           Int      @id @default(autoincrement())
+  username     String
+  role         bullRole
+  createdAt    DateTime  @default(now())
+  recordStatus String
 }

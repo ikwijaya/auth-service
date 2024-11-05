@@ -92,7 +92,10 @@ abstract class Api {
     queueEvents.on('completed', async (value) => {
       logger.info("jobId: " + value.jobId)
       logger.info("returnvalue: " + JSON.stringify(value.returnvalue))
-      if (value.jobId === jobId) return res.json(value.returnvalue);
+      if (value.jobId === jobId) {
+        if (!value.returnvalue['statusCode']) return res.json(value.returnvalue);
+        else res.status(value.returnvalue['statusCode']).send(value.returnvalue);
+      }
     });
   }
 

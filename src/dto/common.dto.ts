@@ -198,8 +198,13 @@ export class RejectDto {
 }
 
 export interface IWorkerApi {
-  method: string,
+  method: string | 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string;
   body: unknown;
   headers: Record<string, unknown>
+}
+
+export interface ITierLimit {
+  id: number;
+  maxLimit: number;
 }

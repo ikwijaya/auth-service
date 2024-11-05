@@ -3,7 +3,7 @@ import { type CustomResponse } from '@/types/common.type';
 import Api from '@/lib/api';
 import Jwt from 'jsonwebtoken';
 import { IJwtCommunicator, IWorkerApi } from '@/dto/common.dto';
-import { IApiError } from '@/lib/errors';
+import { BullService } from '@/modules/log/bull.service';
 
 export default class LogController extends Api {
 
@@ -83,15 +83,8 @@ export default class LogController extends Api {
     next: NextFunction
   ) => {
     try {
-      const payload: IWorkerApi = {
-        method: req.method,
-        path: req.originalUrl,
-        body: req.body,
-        headers: { apikey: process.env.API_KEY }
-      }
-
-      const logUrl: string = process.env.API_LOG_URL
-      const value = await this.sendRestful(logUrl, payload).catch(e => { throw e })
+      const bullService = new BullService()
+      const value = await bullService.get(req.body).catch(e => { throw e })
       if (value) res.redirect('/monitoring')
       else res.redirect('/not-found')
     } catch (error) {
