@@ -246,6 +246,7 @@ model Session {
   token        String    @unique
   userId       Int
   type         String
+  fcmUrl       String?
   createdAt    DateTime  @default(now())
   createdBy    Int
   updatedAt    DateTime? @updatedAt

@@ -30,7 +30,7 @@ export class INotifQMes {
   createdAt?: Date;
   createdBy: number | undefined | null;
   createdUsername: string | undefined | null;
-  forUserId?: bigint;
+  forUserId?: number | undefined | null;
 
   constructor() {
     this.createdAt = new Date();
