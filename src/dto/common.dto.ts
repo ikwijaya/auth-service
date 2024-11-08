@@ -82,7 +82,7 @@ export interface IJwtVerify {
   id: number;
   username: string;
   email?: string | null | undefined;
-  fullname?: string;
+  fullname?: string | null | undefined;
   type: string;
   method: 'original' | 'impersonate';
   privilegeName?: string;

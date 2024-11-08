@@ -1,3 +1,4 @@
+import { HttpStatusCode } from 'axios';
 import prisma from '@/lib/prisma';
 import { type IMessages, type IUserAccount } from '@/dto/common.dto';
 import {
@@ -5,7 +6,7 @@ import {
   type IMatrixMenu,
   type IRole,
 } from '@/dto/access.dto';
-import { type IApiError } from '@/lib/errors';
+import { setError } from '@/lib/errors';
 
 interface IAccessMatrix {
   formId: number;
@@ -35,9 +36,10 @@ export default class AccessService {
       throw e;
     });
 
-    if (!obj.items) throw { rawErrors: ['no matrix provided'] } as IApiError;
+    if (!obj.items)
+      throw setError(HttpStatusCode.InternalServerError, 'no matrix provided');
     if (obj.items.length === 0)
-      throw { rawErrors: ['no matrix provided'] } as IApiError;
+      throw setError(HttpStatusCode.InternalServerError, 'no matrix provided');
     const isTypeExists = await prisma.type
       .findFirst({
         select: { name: true },
@@ -47,7 +49,7 @@ export default class AccessService {
         throw e;
       });
     if (!isTypeExists)
-      throw { rawErrors: ['privilege not found'] } as IApiError;
+      throw setError(HttpStatusCode.InternalServerError, 'privilege not found');
 
     return await prisma
       .$transaction(async (tx) => {
@@ -60,7 +62,7 @@ export default class AccessService {
           throw e;
         });
 
-        return { messages: ['Updated'] } as IMessages;
+        return { messages: ['Updated'] } satisfies IMessages;
       })
       .catch((e) => {
         throw e;
@@ -162,7 +164,7 @@ export default class AccessService {
         id: e.id,
         parentId: e.parentId,
         sort: e.sort,
-        name: e.parentId ? `${e.parent?.name} > ${e.name}` : e.name,
+        name: e.parentId ? (e.parent?.name ?? '') + ' > ' + e.name : e.name,
         isReadOnly: e.isReadOnly,
         roles: e.Access.map((i) => ({
           roleAction: i.roleAction,

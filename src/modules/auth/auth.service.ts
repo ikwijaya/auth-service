@@ -4,7 +4,7 @@ import Jwt from 'jsonwebtoken';
 import { HttpStatusCode } from 'axios';
 import { type Entry, Client } from 'ldapts';
 import prisma from '@/lib/prisma';
-import { type IApiError } from '@/lib/errors';
+import { setError, type IApiError } from '@/lib/errors';
 import { type LoginResDto, type LoginDto } from '@/dto/auth.dto';
 import { type IJwtVerify, type IMessages } from '@/dto/common.dto';
 import { aesCbcDecrypt } from '@/lib/security';
@@ -53,7 +53,8 @@ export default class AuthService extends Service {
     attempt: number
   ) {
     const verify = await this.verifyLdap(username, ldap);
-    if (!verify.valid) throw { rawErrors: [AUTH_FAIL_01] } as IApiError;
+    if (!verify.valid)
+      throw setError(HttpStatusCode.InternalServerError, AUTH_FAIL_01);
 
     const userPassword: string = await aesCbcDecrypt(
       password,
@@ -105,11 +106,11 @@ export default class AuthService extends Service {
           verify.valid && verify.entries.length > 0
             ? verify.entries[0].lockoutTime
             : undefined;
-        logger.warn(`${AuthService.name}: ${lockoutTime}`);
+
         if (lockoutTime) {
           const date: Date = this.adConvertTime(lockoutTime as string);
           logger.error(
-            `login failed ${username}, please relogin after ${date}`
+            `login failed ${username}, please relogin after ${date.toString()}`
           );
           nextLogin.push(`Silakan coba kembali setelah beberapa menit`);
         }
@@ -118,7 +119,7 @@ export default class AuthService extends Service {
           serviceName: AuthService.name,
           action: 'bad-login',
           json: { username, lockoutTime },
-          message: `${username} failed login: (percobaan: ${attempt}x), kesalahan pada username atau password. lock-time: ${lockoutTime}`,
+          message: `${username} failed login: (percobaan: ${attempt}x), kesalahan pada username atau password`,
           createdAt: new Date(),
           createdBy: obj.userId,
           createdUsername: username,
@@ -128,13 +129,15 @@ export default class AuthService extends Service {
           ipAddress: obj.ipAddress,
         };
 
-        this.addLog([{ flag: `${AuthService.name}`, payload }]);
-        throw {
-          stack: environment.isDev() ? verify : e,
-          rawErrors: [
-            `(percobaan: ${attempt}x), kesalahan pada username atau password`,
-          ].concat(nextLogin),
-        } as IApiError;
+        void this.addLog([{ flag: `${AuthService.name}`, payload }]);
+        throw setError(
+          HttpStatusCode.InternalServerError,
+          [`(percobaan: ${attempt}x), kesalahan pada username atau password`]
+            .concat(nextLogin)
+            .join('\n'),
+          false,
+          environment.isDev() ? verify : e
+        );
       }
 
       await prisma
@@ -166,19 +169,19 @@ export default class AuthService extends Service {
         ipAddress: obj.ipAddress,
       };
 
-      this.addLog([{ flag: `${AuthService.name}`, payload }]);
-      throw {
-        rawErrors: [
-          `(percobaan: ${attempt + 1}x), kesalahan pada username atau password`,
-        ],
-        stack: e,
-      } as IApiError;
+      void this.addLog([{ flag: `${AuthService.name}`, payload }]);
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        [`(percobaan: ${attempt + 1}x), kesalahan pada username atau password`]
+          .concat(nextLogin)
+          .join('\n'),
+        false,
+        environment.isDev() ? verify : e
+      );
     });
 
-    if (valid) {
-      logger.info(`nice binding for ${username} with DN: ${dn}`);
-      return valid;
-    } else {
+    if (valid) return valid;
+    else {
       await prisma
         .$transaction([
           prisma.user.update({
@@ -208,8 +211,8 @@ export default class AuthService extends Service {
         ipAddress: obj.ipAddress,
       };
 
-      this.addLog([{ flag: `${AuthService.name}`, payload }]);
-      throw { rawErrors: [LOGIN_FAIL_01] } as IApiError;
+      void this.addLog([{ flag: `${AuthService.name}`, payload }]);
+      throw setError(HttpStatusCode.InternalServerError, LOGIN_FAIL_01);
     }
   }
 
@@ -250,8 +253,8 @@ export default class AuthService extends Service {
         ipAddress: obj.ipAddress,
       };
 
-      this.addLog([{ flag: `${AuthService.name}`, payload }]);
-      throw { rawErrors: [LOGIN_FAIL_00] } as IApiError;
+      void this.addLog([{ flag: `${AuthService.name}`, payload }]);
+      throw setError(HttpStatusCode.InternalServerError, LOGIN_FAIL_00);
     }
   }
 
@@ -262,14 +265,17 @@ export default class AuthService extends Service {
    */
   private async withoutGroup(obj: LoginDto) {
     const user = await this.findUser(obj);
-    if (!user) throw { rawErrors: [LOGIN_FAIL_00] } as IApiError;
+    if (!user)
+      throw setError(HttpStatusCode.InternalServerError, LOGIN_FAIL_01);
     const countUserGroup = await prisma.userGroup
       .count({ where: { userId: user?.id } })
       .catch((e) => {
         throw e;
       });
 
-    if (countUserGroup === 0) throw { rawErrors: [LOGIN_FAIL_00] } as IApiError;
+    if (countUserGroup === 0)
+      throw setError(HttpStatusCode.InternalServerError, LOGIN_FAIL_01);
+
     const userGroup = await prisma.userGroup
       .findFirst({
         select: {
@@ -291,11 +297,10 @@ export default class AuthService extends Service {
         throw e;
       });
     if (!userGroup)
-      throw {
-        rawErrors: [
-          'You not have default group to login, please select group before login',
-        ],
-      } as IApiError;
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'You not have default group to login, please select group before login'
+      );
     else return { user, userGroup };
   }
 
@@ -309,9 +314,11 @@ export default class AuthService extends Service {
     });
 
     if (!user.ldap)
-      throw {
-        rawErrors: ['Your account is not provided by active directory forest'],
-      } as IApiError;
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'Your account is not provided by active directory forest'
+      );
+
     const valid = await this.binding(
       {
         userId: user.id,
@@ -334,7 +341,7 @@ export default class AuthService extends Service {
         groupId: userGroup.groupId,
         method: 'original',
         type: 'app-cms',
-      } as IJwtVerify,
+      } satisfies IJwtVerify,
       process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
       { expiresIn: process.env.JWT_EXPIRE }
     );
@@ -423,7 +430,7 @@ export default class AuthService extends Service {
           ipAddress: obj.ipAddress,
         };
 
-        this.addLog([{ flag: `${AuthService.name}`, payload }]);
+        void this.addLog([{ flag: `${AuthService.name}`, payload }]);
       })
       .catch((e) => {
         throw e;
@@ -433,7 +440,7 @@ export default class AuthService extends Service {
       accessToken: 'Bearer ' + token,
       expiresIn: process.env.JWT_EXPIRE,
       groupId: obj.groupId,
-    } as LoginResDto;
+    } satisfies LoginResDto;
   }
 
   /**
@@ -460,7 +467,9 @@ export default class AuthService extends Service {
         throw e;
       });
 
-    if (!user) throw { rawErrors: [LOGIN_FAIL_00] } as IApiError;
+    if (!user)
+      throw setError(HttpStatusCode.InternalServerError, LOGIN_FAIL_00);
+
     /**
      * handle when user status is waiting for approval
      * thats means this user has assign to some group before
@@ -509,7 +518,7 @@ export default class AuthService extends Service {
     return {
       messages: [],
       payload: { groups: Array.from(new Set(groups)) },
-    } as IMessages;
+    } satisfies IMessages;
   }
 
   /**
@@ -535,7 +544,8 @@ export default class AuthService extends Service {
         throw e;
       });
 
-    if (!user) throw { rawErrors: [LOGOUT_ALREADY] } as IApiError;
+    if (!user)
+      throw setError(HttpStatusCode.InternalServerError, LOGOUT_ALREADY);
     else {
       await prisma
         .$transaction([
@@ -557,14 +567,14 @@ export default class AuthService extends Service {
         serviceName: AuthService.name,
         action: 'logout',
         json: { username: user.user.username, fullname: user.user.fullname },
-        message: `${user.user.fullname} is logged out`,
+        message: `${user.user.fullname ?? user.user.username} is logged out`,
         createdAt: new Date(),
         createdBy: user.userId,
         createdUsername: user.user.username,
       };
 
-      this.addLog([{ flag: `${AuthService.name}`, payload }]);
-      return { messages: [] } as IMessages;
+      void this.addLog([{ flag: `${AuthService.name}`, payload }]);
+      return { messages: [] } satisfies IMessages;
     }
   }
 
@@ -596,11 +606,12 @@ export default class AuthService extends Service {
       await client
         .bind(this.buildUserMaster(ldap.username, ldap), ldapPassword)
         .catch((e) => {
-          throw {
-            statusCode: HttpStatusCode.Forbidden,
-            stack: e,
-            rawErrors: ['error when access ldap-server (bind) #1'],
-          } as IApiError;
+          throw setError(
+            HttpStatusCode.InternalServerError,
+            'Error bind..',
+            false,
+            e
+          );
         });
       const { searchEntries } = await client.search(searchDn as string, {
         scope: 'sub',
@@ -630,13 +641,14 @@ export default class AuthService extends Service {
           msg.push(
             `User ID ${username} tidak dapat Kami temukan. Mohon mendaftarkan User ID lain`
           );
-        throw { rawErrors: msg } as IApiError;
+        throw setError(HttpStatusCode.InternalServerError, msg.join('\n'));
       }
 
       return {
         valid,
         entries: searchEntries,
       };
+      // eslint-disable-next-line no-useless-catch
     } catch (error) {
       throw error;
     } finally {
