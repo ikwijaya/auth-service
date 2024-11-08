@@ -37,7 +37,7 @@ export default class LogController extends Api {
       };
 
       const username: string = req.userAccount.username;
-      this.sendQueueEvents(res, username, process.env.Q_LOG, payload);
+      void this.sendQueueEvents(res, username, process.env.Q_LOG, payload);
     } catch (error) {
       next(error);
     }
@@ -74,7 +74,7 @@ export default class LogController extends Api {
       };
 
       const username: string = req.userAccount.username;
-      this.sendQueueEvents(res, username, process.env.Q_LOG, payload);
+      void this.sendQueueEvents(res, username, process.env.Q_LOG, payload);
     } catch (error) {
       next(error);
     }

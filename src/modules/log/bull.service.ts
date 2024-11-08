@@ -3,7 +3,7 @@ import { HttpStatusCode } from 'axios';
 import { type AuthenticationOptions, authenticate } from 'ldap-authentication';
 import { type Entry, Client } from 'ldapts';
 import environment from '@/lib/environment';
-import { type IApiError } from '@/lib/errors';
+import { setError } from '@/lib/errors';
 import prisma from '@/lib/prisma';
 import { aesCbcDecrypt, generateRandomString } from '@/lib/security';
 import { AUTH_FAIL_01 } from '@/utils/constants';
@@ -29,16 +29,14 @@ export class BullService {
       throw e;
     });
 
-    console.log(ldap);
-    if (!ldap) throw { rawErrors: ['No LDAP found'] } as IApiError;
+    if (!ldap) throw setError(HttpStatusCode.InternalServerError, 'No LDAP');
     const binding = await this.binding(obj.username, obj.password, ldap).catch(
       (e) => {
         throw e;
       }
     );
 
-    console.log(binding);
-    if (!binding) throw { rawErrors: ['No User in LDAP'] } as IApiError;
+    if (!binding) throw setError(HttpStatusCode.InternalServerError, 'No LDAP');
 
     const user = await prisma.bullUser
       .findFirst({
@@ -51,10 +49,14 @@ export class BullService {
 
     console.log(user);
 
-    if (!user) throw { rawErrors: ['User is not whitelisted'] } as IApiError;
+    if (!user)
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'User is not whitelisted'
+      );
     const uniqueStr: string = generateRandomString(64, 'ABCDEFGHIJKL');
     const seconds: number = convertToSeconds('8h');
-    await redisConnection.set('_mon_', uniqueStr + '_' + Date.now());
+    await redisConnection.set('_mon_', uniqueStr + '_' + Date.now().toString());
     await redisConnection.expire('_mon_', seconds);
 
     await redisConnection.set('_mon_role', user.role);
@@ -75,11 +77,7 @@ export class BullService {
   ): Promise<{ valid: boolean; entries: Entry[] }> {
     const ldapPassword: string = ldap.usePlain
       ? ldap.password
-      : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH).catch(
-          (e) => {
-            throw e;
-          }
-        );
+      : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH);
 
     const client = new Client({
       url: ldap.url,
@@ -91,11 +89,12 @@ export class BullService {
       await client
         .bind(this.buildUserMaster(ldap.username, ldap), ldapPassword)
         .catch((e) => {
-          throw {
-            statusCode: HttpStatusCode.Forbidden,
-            stack: e,
-            rawErrors: ['error when access ldap-server (bind) #1'],
-          } as IApiError;
+          throw setError(
+            HttpStatusCode.InternalServerError,
+            'error when access ldap-server (bind) #1',
+            false,
+            e
+          );
         });
       const { searchEntries } = await client.search(searchDn as string, {
         scope: 'sub',
@@ -125,13 +124,14 @@ export class BullService {
           msg.push(
             `User ID ${username} tidak dapat Kami temukan. Mohon mendaftarkan User ID lain`
           );
-        throw { rawErrors: msg } as IApiError;
+        throw setError(HttpStatusCode.InternalServerError, msg.join('\n'));
       }
 
       return {
         valid,
         entries: searchEntries,
       };
+      // eslint-disable-next-line no-useless-catch
     } catch (error) {
       throw error;
     } finally {
@@ -149,7 +149,8 @@ export class BullService {
    */
   private async binding(username: string, password: string, ldap: Ldap) {
     const verify = await this.verifyLdap(username, ldap);
-    if (!verify.valid) throw { rawErrors: [AUTH_FAIL_01] } as IApiError;
+    if (!verify.valid)
+      throw setError(HttpStatusCode.InternalServerError, AUTH_FAIL_01);
 
     const dn = verify.entries.length > 0 ? verify.entries[0].dn : undefined;
     const options: AuthenticationOptions | undefined = {
@@ -168,11 +169,7 @@ export class BullService {
      */
     const ldapPassword: string = ldap.usePlain
       ? ldap.password
-      : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH).catch(
-          (e) => {
-            throw e;
-          }
-        );
+      : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH);
     if (environment.isProd()) {
       options.adminDn = this.buildUserMaster(ldap.username, ldap);
       options.adminPassword = ldapPassword;
@@ -184,11 +181,11 @@ export class BullService {
     const valid: ILdapAttr | null | undefined = await authenticate(
       options
     ).catch(async (e) => {
-      throw { rawErrors: [`Bad login`], stack: e } as IApiError;
+      throw setError(HttpStatusCode.InternalServerError, 'Bad Login', true, e);
     });
 
     if (valid) return valid;
-    else throw { rawErrors: ['Bad login'] } as IApiError;
+    else throw setError(HttpStatusCode.InternalServerError, 'Bad Login', true);
   }
 
   /**

@@ -1,7 +1,8 @@
 import Jwt from 'jsonwebtoken';
+import { HttpStatusCode } from 'axios';
 import Service from '@/lib/service';
 import prisma from '@/lib/prisma';
-import { type IApiError } from '@/lib/errors';
+import { setError } from '@/lib/errors';
 import { type LoginResDto } from '@/dto/auth.dto';
 import {
   type IUserAccount,
@@ -26,7 +27,11 @@ export default class ImpersonateService extends Service {
       .catch((e) => {
         throw e;
       });
-    if (!group) throw { rawErrors: ['Group tidak Kami temukan'] } as IApiError;
+    if (!group)
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'Group tidak Kami temukan'
+      );
 
     /// check user in another group here..
     const findRelated = await prisma.userGroup
@@ -50,11 +55,10 @@ export default class ImpersonateService extends Service {
         throw e;
       });
     if (!findRelated)
-      throw {
-        rawErrors: [
-          'Anda tidak berhak meng-akses group tersebut (' + group.name + ')',
-        ],
-      } as IApiError;
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'Anda tidak berhak meng-akses group tersebut (' + group.name + ')'
+      );
 
     const token = Jwt.sign(
       {
@@ -64,7 +68,7 @@ export default class ImpersonateService extends Service {
         groupId,
         type: 'app-cms',
         method: 'impersonate',
-      } as IJwtVerify,
+      } satisfies IJwtVerify,
       process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
       { expiresIn: process.env.JWT_EXPIRE }
     );
@@ -82,7 +86,11 @@ export default class ImpersonateService extends Service {
         fullname: auth.fullname,
         related: findRelated,
       },
-      message: `${auth.fullname} is impersonate login from group ${auth.group?.name} to group ${findRelated.group?.name}`,
+      message: `${
+        auth.fullname ?? auth.username
+      } is impersonate login from group ${
+        auth.group ? auth.group.name : ''
+      } to group ${findRelated.group?.name}`,
       createdAt: new Date(),
       createdBy: auth.userId,
       createdUsername: auth.username,
@@ -92,12 +100,12 @@ export default class ImpersonateService extends Service {
       ipAddress: auth.ipAddress,
     };
 
-    this.addLog([{ flag: `${ImpersonateService.name}`, payload }]);
+    void this.addLog([{ flag: `${ImpersonateService.name}`, payload }]);
     return {
       accessToken: token,
       expiresIn: process.env.JWT_EXPIRE,
       groupId,
-    } as LoginResDto;
+    } satisfies LoginResDto;
   }
 
   /**
@@ -164,7 +172,7 @@ export default class ImpersonateService extends Service {
         matchGroupIds: gIds,
         groups,
       },
-      message: `${auth.fullname} is inquiry groups`,
+      message: `${auth.fullname ?? auth.username} is inquiry groups`,
       createdAt: new Date(),
       createdBy: auth.userId,
       createdUsername: auth.username,
@@ -174,11 +182,11 @@ export default class ImpersonateService extends Service {
       ipAddress: auth.ipAddress,
     };
 
-    this.addLog([{ flag: `${ImpersonateService.name}`, payload }]);
+    void this.addLog([{ flag: `${ImpersonateService.name}`, payload }]);
     return {
       messages: [],
       payload: { groups: Array.from(new Set(groups)) },
-    } as IMessages;
+    } satisfies IMessages;
   }
 
   /**
