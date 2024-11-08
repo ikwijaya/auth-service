@@ -7,12 +7,12 @@ import { ROLE_ACTION } from '@/enums/role.enum';
 const router: Router = Router();
 const controller = new Controller();
 
-router.get(
-  '/master/users',
-  verifyAccount,
-  MatrixValidator.validate(ROLE_ACTION.read),
-  controller.load
-);
+// router.get(
+//   '/master/users',
+//   verifyAccount,
+//   MatrixValidator.validate(ROLE_ACTION.read),
+//   controller.load
+// );
 router.get(
   '/master/user/support',
   verifyAccount,

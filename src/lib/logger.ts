@@ -83,7 +83,7 @@ const addSysLog = (level: string, message: any) => {
       },
     });
 
-    queue.add(`syslog-${now}`, value);
+    void queue.add(`syslog-${now}`, value);
     queue.on('error', (err) => logger.warn(`Logger: ${err.message}`));
   }
 };
@@ -121,6 +121,7 @@ try {
     transports: logTransports,
   });
 } catch (error) {
+  // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
   console.error(`Error creating logger: ${error}`);
   logger = createLogger({}); // default logger
 }

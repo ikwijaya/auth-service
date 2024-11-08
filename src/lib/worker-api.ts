@@ -1,7 +1,11 @@
 import { Worker, type Job } from 'bullmq';
 import type IORedis from 'ioredis';
-import axios from 'axios';
-import { type IApiError } from './errors';
+import axios, {
+  type AxiosHeaders,
+  HttpStatusCode,
+  type RawAxiosRequestHeaders,
+} from 'axios';
+import { setError, type IApiError } from './errors';
 import logger from './logger';
 import { type IMessages, type IWorkerApi } from '@/dto/common.dto';
 
@@ -60,7 +64,11 @@ export class WorkerApi {
                 throw e;
               }
             );
-          else throw { rawErrors: ['Not Implemented'] } as IApiError;
+          else
+            throw setError(
+              HttpStatusCode.NotImplemented,
+              'No Method Implement'
+            );
         } catch (error) {
           console.error('Job failed:', error?.response?.data); // Log the error
           return error?.response?.data;
@@ -99,7 +107,10 @@ export class WorkerApi {
    * @param path
    * @param headers
    */
-  private async get(url: string, headers: {}) {
+  private async get(
+    url: string,
+    headers: RawAxiosRequestHeaders | AxiosHeaders
+  ) {
     return await instance
       .get(url, { headers })
       .then((res) => res.data)
@@ -115,7 +126,11 @@ export class WorkerApi {
    * @param headers
    * @returns
    */
-  private async post(url: string, body: unknown, headers: {}) {
+  private async post(
+    url: string,
+    body: unknown,
+    headers: RawAxiosRequestHeaders | AxiosHeaders
+  ) {
     return await instance
       .post(url, body, { headers })
       .then((res) => res.data)
@@ -131,7 +146,11 @@ export class WorkerApi {
    * @param headers
    * @returns
    */
-  private async put(url: string, body: unknown, headers: {}) {
+  private async put(
+    url: string,
+    body: unknown,
+    headers: RawAxiosRequestHeaders | AxiosHeaders
+  ) {
     return await instance
       .put(url, body, { headers })
       .then((res) => res.data)
@@ -147,7 +166,11 @@ export class WorkerApi {
    * @param headers
    * @returns
    */
-  private async patch(url: string, body: unknown, headers: {}) {
+  private async patch(
+    url: string,
+    body: unknown,
+    headers: RawAxiosRequestHeaders | AxiosHeaders
+  ) {
     return await instance
       .patch(url, body, { headers })
       .then((res) => res.data)
@@ -163,7 +186,10 @@ export class WorkerApi {
    * @param headers
    * @returns
    */
-  private async delete(url: string, headers: {}) {
+  private async delete(
+    url: string,
+    headers: RawAxiosRequestHeaders | AxiosHeaders
+  ) {
     return await instance
       .delete(url, { headers })
       .then((res) => res.data)

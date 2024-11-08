@@ -1,3 +1,4 @@
+import { type RawAxiosRequestHeaders, type AxiosHeaders } from 'axios';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
@@ -201,7 +202,7 @@ export interface IWorkerApi {
   method: string | 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   path: string;
   body: unknown;
-  headers: Record<string, unknown>;
+  headers: RawAxiosRequestHeaders | AxiosHeaders;
 }
 
 export interface ITierLimit {
