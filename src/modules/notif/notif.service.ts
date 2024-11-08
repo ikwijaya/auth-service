@@ -1,11 +1,10 @@
-import { IMessages, IUserAccount, IWorkerApi } from "@/dto/common.dto";
-import prisma from "../../lib/prisma";
-import Service from "../../lib/service";
-import { PushNotifDto } from "@/dto/push-notif.dto";
-import { INotifQMes } from "@/dto/queue.dto";
+import prisma from '../../lib/prisma';
+import Service from '../../lib/service';
+import { type IMessages, type IUserAccount } from '@/dto/common.dto';
+import { type PushNotifDto } from '@/dto/push-notif.dto';
+import { type INotifQMes } from '@/dto/queue.dto';
 
 export class PushNotifService extends Service {
-
   /**
    *
    * @param username
@@ -19,18 +18,18 @@ export class PushNotifService extends Service {
           select: {
             username: true,
             fullname: true,
-            email: true
-          }
-        }
+            email: true,
+          },
+        },
       },
       where: {
         recordStatus: 'A',
         user: {
-          username: username
-        }
+          username,
+        },
       },
-      orderBy: { createdAt: 'desc' }
-    })
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   /**
@@ -39,10 +38,12 @@ export class PushNotifService extends Service {
    * @param obj { fromUser: str, toUser: str, message: str, payload: object }
    */
   public async send(auth: IUserAccount, obj: PushNotifDto) {
-    const user = await this.getUser(obj.toUser).catch(e => { throw e })
+    const user = await this.getUser(obj.toUser).catch((e) => {
+      throw e;
+    });
 
     /// send
-    const data: { flag: string; payload: INotifQMes }[] = []
+    const data: Array<{ flag: string; payload: INotifQMes }> = [];
     data.push({
       flag: 'notif',
       payload: {
@@ -53,12 +54,12 @@ export class PushNotifService extends Service {
         createdAt: new Date(),
         createdBy: auth.userId,
         createdUsername: auth.username,
-        forUserId: user?.userId
-      }
-    })
+        forUserId: user?.userId,
+      },
+    });
 
-    void this.addNotif(data)
+    void this.addNotif(data);
 
-    return { messages: [] } satisfies IMessages
+    return { messages: [] } satisfies IMessages;
   }
 }

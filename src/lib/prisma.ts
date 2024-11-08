@@ -48,6 +48,7 @@ const loopQueryEvent = (object: Prisma.QueryEvent) => {
   for (const key in object) {
     if (Object.prototype.hasOwnProperty.call(object, key)) {
       const element = object[key];
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       logger.info(`[prisma-query]: ${key}: ${element}`);
     }
   }
@@ -66,12 +67,16 @@ const loopLogEvent = (
     if (Object.prototype.hasOwnProperty.call(object, key)) {
       const element = object[key];
       if (status === 'err')
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         logger.error(`[prisma-${status}]: ${key}: ${element}`);
       if (status === 'log')
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         logger.info(`[prisma-${status}]: ${key}: ${element}`);
       if (status === 'warn')
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         logger.warn(`[prisma-${status}]: ${key}: ${element}`);
       if (status === 'info')
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         logger.info(`[prisma-${status}]: ${key}: ${element}`);
     }
   }

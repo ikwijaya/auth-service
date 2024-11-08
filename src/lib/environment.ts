@@ -24,7 +24,7 @@ class Environment implements IEnvironment {
 
   constructor() {
     const port = process.env.PORT ?? 8080;
-    this.port = +port ?? appConfig.defaultPort;
+    this.port = parseInt(port) ?? appConfig.defaultPort;
     this.setEnvironment(process.env.NODE_ENV ?? Environments.DEV);
   }
 

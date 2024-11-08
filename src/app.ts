@@ -86,7 +86,7 @@ class App {
     await prismaClient.$connect();
   }
 
-  private async bullMonitor(): Promise<void> {
+  private bullMonitor(): void {
     const adapter = new ExpressAdapter();
     const createQueue = (name: string) =>
       new Queue(name, { connection: this.ioredis });

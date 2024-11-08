@@ -12,11 +12,10 @@ const createPagination = (
   return {
     take: pageSize,
     skip,
-    pageSize,
     currentPage,
     totalPages,
     totalRows,
-  } as IPrismaPagination;
+  } satisfies IPrismaPagination;
 };
 
 export default createPagination;

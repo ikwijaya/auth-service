@@ -81,7 +81,7 @@ export interface IMessages {
 export interface IJwtVerify {
   id: number;
   username: string;
-  email?: string;
+  email?: string | null | undefined;
   fullname?: string;
   type: string;
   method: 'original' | 'impersonate';

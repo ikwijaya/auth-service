@@ -84,8 +84,8 @@ export class AuthValidate {
         throw e;
       });
 
-    if (!user) return { relogin: false } as IKickLogin;
-    if (!userGroup) return { relogin: false } as IKickLogin;
+    if (!user) return { relogin: false } satisfies IKickLogin;
+    if (!userGroup) return { relogin: false } satisfies IKickLogin;
 
     this.userAccount = {
       id,
@@ -107,7 +107,8 @@ export class AuthValidate {
         throw e;
       }
     );
-    return { relogin: false, payload: user } as IKickLogin;
+
+    return { relogin: false, payload: this.userAccount } satisfies IKickLogin;
   }
 
   /**
@@ -136,9 +137,10 @@ export class AuthValidate {
    */
   private async sessionInRedis(username: string) {
     this.isActive = await this.connection.get('sid_' + username);
+    const ttl: number = await this.connection.ttl('sid_' + username);
 
     logger.info('redis_token: ' + JSON.stringify(this.isActive));
-    logger.info('ttl: ' + (await this.connection.ttl('sid_' + username)));
+    logger.info('ttl: ' + ttl.toString());
   }
 
   /**
@@ -167,46 +169,45 @@ export class AuthValidate {
     groupId: number,
     username: string
   ) {
-    try {
-      if (!process.env.REDIS_HOST) {
-        logger.info('read from database only');
-        await this.sessionInDatabase(id, token).catch((e) => {
-          throw e;
-        });
-        if (!this.isActive) return { relogin: true } as IKickLogin;
+    if (!process.env.REDIS_HOST) {
+      logger.info('read from database only');
+      await this.sessionInDatabase(id, token).catch((e) => {
+        throw e;
+      });
+      if (!this.isActive) return { relogin: true } satisfies IKickLogin;
 
+      return await this.fetchDatabase(id, formId, groupId, username).catch(
+        (e) => {
+          throw e;
+        }
+      );
+    } else {
+      logger.info('read from redis+database');
+      this.connect();
+
+      // checking in redis first
+      await this.sessionInRedis(username).catch((e) => {
+        throw e;
+      });
+      if (!this.isActive) return { relogin: true } satisfies IKickLogin;
+
+      // checking uac in redis
+      await this.getRedis(username).catch((e) => {
+        throw e;
+      });
+      if (this.userAccount) {
+        if (formId) this.userAccount.formId = Number(formId);
+
+        return {
+          relogin: false,
+          payload: this.userAccount,
+        } satisfies IKickLogin;
+      } else
         return await this.fetchDatabase(id, formId, groupId, username).catch(
           (e) => {
             throw e;
           }
         );
-      } else {
-        logger.info('read from redis+database');
-        this.connect();
-
-        // checking in redis first
-        await this.sessionInRedis(username).catch((e) => {
-          throw e;
-        });
-        if (!this.isActive) return { relogin: true } as IKickLogin;
-
-        // checking uac in redis
-        await this.getRedis(username).catch((e) => {
-          throw e;
-        });
-        if (this.userAccount) {
-          if (formId) this.userAccount.formId = Number(formId);
-
-          return { relogin: false, payload: this.userAccount } as IKickLogin;
-        } else
-          return await this.fetchDatabase(id, formId, groupId, username).catch(
-            (e) => {
-              throw e;
-            }
-          );
-      }
-    } catch (error) {
-      throw error;
     }
   }
 
@@ -263,7 +264,7 @@ export class AuthValidate {
       ...ijwt,
       email: getUser?.email,
       privilegeName: getUserGroup?.type.name,
-    } as IJwtVerify;
+    } satisfies IJwtVerify;
   }
 }
 

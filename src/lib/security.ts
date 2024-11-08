@@ -3,6 +3,7 @@
 import crypto from 'crypto';
 import exRateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
+import { HttpStatusCode } from 'axios';
 import { type IApiError } from './errors';
 import redisConnection from './ioredis';
 
@@ -89,7 +90,13 @@ export async function aesCbcDecrypt(
 
     return plaintext; // return the plaintext
   } catch (e) {
-    throw { rawErrors: ['error decrypt'], stack: e } as IApiError;
+    const _error: IApiError = {
+      statusCode: HttpStatusCode.InternalServerError,
+      name: 'Error',
+      message: 'Internal Server Error',
+    };
+
+    throw _error;
   }
 }
 
@@ -134,11 +141,12 @@ export function rateLimit(options: IRateLimit) {
       standardHeaders: true,
       legacyHeaders: false,
       message: {
-        rawErrors: ['Terlalu banyak permintaan, silakan coba lagi nanti'],
-      } as IApiError,
+        message: 'Terlalu banyak permintaan, silakan coba lagi nanti',
+      },
       store: new RedisStore({
         // @ts-expect-error - Known issue: the `call` function is not present in @types/ioredis
         sendCommand: async (...args: string[]) =>
+          // @ts-expect-error - Known issue: the `call` function is not present in @types/ioredis
           await redisConnection.call(...args),
       }),
     });
@@ -151,7 +159,7 @@ export function rateLimit(options: IRateLimit) {
       standardHeaders: true,
       legacyHeaders: false,
       message: {
-        rawErrors: ['Terlalu banyak permintaan, silakan coba lagi nanti'],
-      } as IApiError,
+        message: 'Terlalu banyak permintaan, silakan coba lagi nanti',
+      },
     });
 }

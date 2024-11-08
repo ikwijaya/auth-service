@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-import axios, { HttpStatusCode } from 'axios';
+import { HttpStatusCode } from 'axios';
 import { type Request, type Response } from 'express';
 import mcache from 'memory-cache';
 import { Queue, QueueEvents } from 'bullmq';
@@ -38,7 +37,7 @@ abstract class Api {
 
     if (cache) {
       const path = req?.path;
-      const key: string = `${path}_${JSON.stringify(req?.body)}`;
+      const key: string = path ?? '' + '_' + JSON.stringify(req?.body);
       mcache.put(key, data, 1000 * duration, (k, v) =>
         logger.info('put cache for key: ' + key)
       );

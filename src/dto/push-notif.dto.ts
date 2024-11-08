@@ -1,16 +1,16 @@
-import { IsObject, IsOptional, IsString } from "class-validator";
+import { IsObject, IsOptional, IsString } from 'class-validator';
 
 export class PushNotifDto {
   @IsString()
   fromUser: string;
 
   @IsString()
-  toUser: string
+  toUser: string;
 
   @IsString()
   message: string;
 
   @IsObject()
   @IsOptional()
-  payload: Object | undefined
+  payload: unknown | undefined;
 }
