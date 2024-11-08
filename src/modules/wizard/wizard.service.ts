@@ -1,5 +1,6 @@
+import { HttpStatusCode } from 'axios';
 import prisma from '@/lib/prisma';
-import { type IApiError } from '@/lib/errors';
+import { setError, type IApiError } from '@/lib/errors';
 import {
   type ExecWizardDto,
   type RunWizardDto,
@@ -40,8 +41,16 @@ export default class WizardService extends Service {
         throw e;
       });
 
-    if (!wizard) throw { rawErrors: ['not authenticated'] } as IApiError;
-    else return { success: true, expiresIn: wizard.expiresIn } as RunWizardRes;
+    if (!wizard)
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'Internal Server Error'
+      );
+    else
+      return {
+        success: true,
+        expiresIn: wizard.expiresIn,
+      } satisfies RunWizardRes;
   }
 
   /**
@@ -66,7 +75,11 @@ export default class WizardService extends Service {
         throw e;
       });
 
-    if (!wizard) throw { rawErrors: ['not authenticated'] } as IApiError;
+    if (!wizard)
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'Internal Server Error'
+      );
     else {
       const ldap: LdapWizardRes[] = await prisma.ldap
         .findMany({
@@ -109,7 +122,10 @@ export default class WizardService extends Service {
       });
 
     if (!wizard)
-      throw { rawErrors: ['not authenticated or expired'] } as IApiError;
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'Internal Server Error'
+      );
     else {
       const str: string = obj.json as unknown as string;
       const json: LdapWizardDto = JSON.parse(str);
@@ -119,9 +135,9 @@ export default class WizardService extends Service {
           await tx.ldap.update({
             data: {
               updatedAt: new Date(),
-              note: `updated by wizard with token is ${obj.token} at ${date}` as string & {
-                _kind?: 'MyString';
-              },
+              note: `updated by wizard with token is ${
+                obj.token
+              } at ${date.toString()}`,
               password: json.password,
               username: json.username,
               usePlain: json.usePlain,
@@ -148,14 +164,14 @@ export default class WizardService extends Service {
             message: 'wizard is processed for change identity of ldap auth',
           };
 
-          this.addLog([{ flag: WizardService.name, payload }]);
+          void this.addLog([{ flag: WizardService.name, payload }]);
         })
         .catch((e) => {
           throw e;
         });
 
       // @typescript-eslint/consistent-type-assertions
-      return { messages: ['Success'] } as IMessages;
+      return { messages: ['Success'] } satisfies IMessages;
     }
   }
 }

@@ -14,7 +14,7 @@ server.listen(process.env.PORT, () => {
 process.on('SIGINT', () => {
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
   prismaClient.$disconnect();
-  redisConnection.quit();
+  void redisConnection.quit();
   logger.warn('Prisma Disconnected.');
   logger.warn('Redis Disconnected.');
   process.exit(0);

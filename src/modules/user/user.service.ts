@@ -1,28 +1,9 @@
 import prisma from '@/lib/prisma';
 import { type PageValidateDto } from '@/dto/user.dto';
-import {
-  type IUserAccount,
-  type IUserMatrix,
-  type IPagination,
-  type IQuerySearch,
-} from '@/dto/common.dto';
+import { type IUserAccount } from '@/dto/common.dto';
 import Service from '@/lib/service';
 
 export default class UserService extends Service {
-  /**
-   *
-   * @param auth
-   * @param matrix
-   * @param params
-   * @returns
-   */
-  public async load(
-    auth: IUserAccount,
-    matrix: IUserMatrix,
-    params: IPagination,
-    qs?: IQuerySearch
-  ): Promise<void> {}
-
   /**
    *
    * @param auth

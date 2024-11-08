@@ -3,7 +3,7 @@ import { Client, type Entry } from 'ldapts';
 import { HttpStatusCode } from 'axios';
 import prisma from '@/lib/prisma';
 import { type IUserAccount } from '@/dto/common.dto';
-import { type IApiError } from '@/lib/errors';
+import { setError } from '@/lib/errors';
 import { aesCbcDecrypt } from '@/lib/security';
 
 export default class UtilService {
@@ -18,7 +18,10 @@ export default class UtilService {
     username: string
   ): Promise<{ valid: boolean; entries: Entry[] }> {
     if (!auth.ldapId)
-      throw { rawErrors: ['Error no ldap config found'] } as IApiError;
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'no ldap config found'
+      );
 
     username = username.toLocaleLowerCase();
     const ldap = await prisma.ldap
@@ -30,14 +33,13 @@ export default class UtilService {
       });
 
     if (!ldap)
-      throw { rawErrors: ['no ldap registered in system'] } as IApiError;
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'no ldap config found'
+      );
     const ldapPassword: string = ldap.usePlain
       ? ldap.password
-      : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH).catch(
-          (e) => {
-            throw e;
-          }
-        );
+      : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH);
 
     const client = new Client({
       url: ldap.url,
@@ -49,11 +51,12 @@ export default class UtilService {
       await client
         .bind(this.buildUser(ldap.username, ldap), ldapPassword)
         .catch((e) => {
-          throw {
-            statusCode: HttpStatusCode.Forbidden,
-            stack: e,
-            rawErrors: ['error when access ldap-server (bind) #1'],
-          } as IApiError;
+          throw setError(
+            HttpStatusCode.InternalServerError,
+            'error bind...',
+            false,
+            e
+          );
         });
       const { searchEntries } = await client.search(searchDn as string, {
         scope: 'sub',
@@ -94,13 +97,14 @@ export default class UtilService {
             `User ID ${username} sudah terdaftar. Mohon mendaftarkan User ID lain`
           );
 
-        throw { rawErrors: msg } as IApiError;
+        throw setError(HttpStatusCode.InternalServerError, msg.join('\n'));
       }
 
       return {
         valid,
         entries: searchEntries,
       };
+      // eslint-disable-next-line no-useless-catch
     } catch (error) {
       throw error;
     } finally {
@@ -112,12 +116,23 @@ export default class UtilService {
     return await prisma.$metrics.prometheus();
   }
 
+  /**
+   *
+   * @param username
+   * @param ldap
+   * @returns
+   */
   private buildUser(username: string, ldap: Ldap) {
     return `cn=${username},ou=${ldap.ouLogin},dc=${ldap.dc
       .split('.')
       .join(',dc=')}` as string & { _kind?: 'MyString' };
   }
 
+  /**
+   *
+   * @param ldap
+   * @returns
+   */
   private buildDn(ldap: Ldap) {
     return ldap.dc.includes('.')
       ? 'dc=' + ldap.dc.split('.').join(',dc=')
@@ -135,7 +150,10 @@ export default class UtilService {
     username: string
   ): Promise<{ valid: boolean; entries: Entry[] }> {
     if (!auth.ldapId)
-      throw { rawErrors: ['Error no ldap config found'] } as IApiError;
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'no ldap config found'
+      );
 
     const ldap = await prisma.ldap
       .findFirst({
@@ -146,14 +164,14 @@ export default class UtilService {
       });
 
     if (!ldap)
-      throw { rawErrors: ['no ldap registered in system'] } as IApiError;
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'no ldap config found'
+      );
+
     const ldapPassword: string = ldap.usePlain
       ? ldap.password
-      : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH).catch(
-          (e) => {
-            throw e;
-          }
-        );
+      : await aesCbcDecrypt(ldap.password, process.env.ENCRYPTION_HASH);
 
     const client = new Client({
       url: ldap.url,
@@ -165,11 +183,7 @@ export default class UtilService {
       await client
         .bind(this.buildUser(ldap.username, ldap), ldapPassword)
         .catch((e) => {
-          throw {
-            statusCode: HttpStatusCode.Forbidden,
-            stack: e,
-            rawErrors: ['error when access ldap-server (bind) #1'],
-          } as IApiError;
+          throw setError(HttpStatusCode.InternalServerError, e);
         });
       const { searchEntries } = await client.search(searchDn as string, {
         scope: 'sub',
@@ -206,13 +220,15 @@ export default class UtilService {
         const msg: string[] = [];
         if (!searchEntries || searchEntries.length === 0)
           msg.push(`${username} tidak ditemukan dalam active directory`);
-        throw { rawErrors: msg } as IApiError;
+
+        throw setError(HttpStatusCode.InternalServerError, msg.join('\n'));
       }
 
       return {
         valid,
         entries: searchEntries,
       };
+      // eslint-disable-next-line no-useless-catch
     } catch (error) {
       throw error;
     } finally {

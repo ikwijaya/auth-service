@@ -1,3 +1,4 @@
+import { HttpStatusCode } from 'axios';
 import prisma from '@/lib/prisma';
 import {
   type IDataWithPagination,
@@ -8,9 +9,9 @@ import {
   type IQuerySearch,
 } from '@/dto/common.dto';
 import { type CreateTypeDto, type UpdateTypeDto } from '@/dto/type.dto';
-import { type IApiError } from '@/lib/errors';
+import { setError, type IApiError } from '@/lib/errors';
 import createPagination from '@/lib/pagination';
-import accessService from '@/modules/access/access.service';
+import AccessService from '@/modules/access/access.service';
 import { type IRole, type IMatrixMenu } from '@/dto/access.dto';
 import Service from '@/lib/service';
 import {
@@ -21,7 +22,7 @@ import {
 import { type ILogQMes } from '@/dto/queue.dto';
 
 export default class TypeService extends Service {
-  private readonly AccessService = new accessService();
+  private readonly AccessService = new AccessService();
 
   /**
    *
@@ -47,7 +48,12 @@ export default class TypeService extends Service {
     });
 
     if (totalRows === 0)
-      return { items: [], pagination: params, matrix } as IDataWithPagination;
+      return {
+        items: [],
+        pagination: params,
+        matrix,
+      } satisfies IDataWithPagination;
+
     const _p = createPagination(params.page, params.pageSize, totalRows);
     params.currentPage = _p.currentPage;
     params.totalPage = _p.totalPages;
@@ -101,7 +107,7 @@ export default class TypeService extends Service {
       })),
       matrix,
       pagination: params,
-    } as IDataWithPagination;
+    } satisfies IDataWithPagination;
   }
 
   /**
@@ -272,7 +278,10 @@ export default class TypeService extends Service {
       });
 
     if (!groupExists)
-      throw { rawErrors: ['Group tidak ditemukan'] } as IApiError;
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'Group tidak Kami temukan'
+      );
     return await prisma
       .$transaction(async (tx) => {
         const type = await tx.type
@@ -346,7 +355,9 @@ export default class TypeService extends Service {
           serviceName: TypeService.name,
           action: 'create',
           json: { obj, matrix },
-          message: `${auth.fullname} is created peran ${obj.name}`,
+          message: `${auth.fullname ?? auth.username} is created peran ${
+            obj.name
+          }`,
           createdAt: new Date(),
           createdBy: auth.userId,
           createdUsername: auth.username,
@@ -356,11 +367,11 @@ export default class TypeService extends Service {
           ipAddress: auth.ipAddress,
         };
 
-        this.addLog([{ flag: `${TypeService.name}`, payload }]);
+        void this.addLog([{ flag: `${TypeService.name}`, payload }]);
         return {
           messages: ['Peran', DEFAULT_SUCCESS],
           payload: type,
-        } as IMessages;
+        } satisfies IMessages;
       })
       .catch((e) => {
         throw e;
@@ -385,7 +396,7 @@ export default class TypeService extends Service {
       });
 
     const matrix = await this.AccessService.support();
-    return { groups, forms: matrix.forms } as {
+    return { groups, forms: matrix.forms } satisfies {
       groups: Record<string, any>;
       forms: unknown;
     };
@@ -409,12 +420,19 @@ export default class TypeService extends Service {
         throw e;
       });
     if (!groupExists)
-      throw { rawErrors: ['Group tidak ditemukan'] } as IApiError;
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'Group tidak Kami temukan'
+      );
 
     const exist = await prisma.type.findFirst({ where: { id } }).catch((e) => {
       throw e;
     });
-    if (!exist) throw { rawErrors: ['Peran tidak ditemukan'] } as IApiError;
+    if (!exist)
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'Peran tidak Kami temukan'
+      );
     return await prisma
       .$transaction(async (tx) => {
         await tx.type
@@ -465,7 +483,9 @@ export default class TypeService extends Service {
           serviceName: TypeService.name,
           action: 'update',
           json: { matrix, before: exist, after: obj },
-          message: `${auth.fullname} is updated peran from ${exist.name} to ${obj.name}`,
+          message: `${auth.fullname ?? auth.username} is updated peran from ${
+            exist.name
+          } to ${obj.name}`,
           createdAt: new Date(),
           createdBy: auth.userId,
           createdUsername: auth.username,
@@ -475,10 +495,10 @@ export default class TypeService extends Service {
           ipAddress: auth.ipAddress,
         };
 
-        this.addLog([{ flag: `${TypeService.name}`, payload }]);
+        void this.addLog([{ flag: `${TypeService.name}`, payload }]);
         return {
           messages: ['Peran', DEFAULT_UPDATED],
-        } as IMessages;
+        } satisfies IMessages;
       })
       .catch((e) => {
         throw e;
@@ -503,14 +523,19 @@ export default class TypeService extends Service {
         throw e;
       });
     if (check.length > 0)
-      throw {
-        rawErrors: ['Peran masih digunakan oleh beberapa User'],
-      } as IApiError;
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'Peran masih digunakan oleh beberapa User'
+      );
 
     const exist = await prisma.type.findFirst({ where: { id } }).catch((e) => {
       throw e;
     });
-    if (!exist) throw { rawErrors: ['Peran tidak ditemukan'] } as IApiError;
+    if (!exist)
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'Peran tidak Kami temukan'
+      );
 
     return await prisma
       .$transaction(async (tx) => {
@@ -539,7 +564,9 @@ export default class TypeService extends Service {
           serviceName: TypeService.name,
           action: 'delete',
           json: { before: exist, id },
-          message: `${auth.fullname} is deleted peran ${exist.name}`,
+          message: `${auth.fullname ?? auth.username} is deleted peran ${
+            exist.name
+          }`,
           createdAt: new Date(),
           createdBy: auth.userId,
           createdUsername: auth.username,
@@ -549,10 +576,10 @@ export default class TypeService extends Service {
           ipAddress: auth.ipAddress,
         };
 
-        this.addLog([{ flag: `${TypeService.name}`, payload }]);
+        void this.addLog([{ flag: `${TypeService.name}`, payload }]);
         return {
           messages: ['Peran', DEFAULT_DELETED],
-        } as IMessages;
+        } satisfies IMessages;
       })
       .catch((e) => {
         throw e;
