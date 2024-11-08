@@ -28,7 +28,15 @@ export default class RequestValidator {
         } else {
           const rawErrors: string[] = getAllConstraintKeys(errors);
           logger.error(rawErrors);
-          next(setError(HttpStatusCode.BadRequest, rawErrors.join('\n')));
+          next(
+            setError(
+              HttpStatusCode.BadRequest,
+              rawErrors.join('\n'),
+              false,
+              undefined,
+              errors
+            )
+          );
         }
       } catch (e) {
         logger.error(e);

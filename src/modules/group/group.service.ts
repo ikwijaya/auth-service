@@ -1,5 +1,6 @@
+import { HttpStatusCode } from 'axios';
 import prisma from '@/lib/prisma';
-import { type IApiError } from '@/lib/errors';
+import { setError, type IApiError } from '@/lib/errors';
 import {
   type IDataWithPagination,
   type IMessages,
@@ -44,7 +45,12 @@ export default class GroupService extends Service {
     });
 
     if (totalRows === 0)
-      return { items: [], matrix, pagination: params } as IDataWithPagination;
+      return {
+        items: [],
+        matrix,
+        pagination: params,
+      } satisfies IDataWithPagination;
+
     const _p = createPagination(params.page, params.pageSize, totalRows);
     params.currentPage = _p.currentPage;
     params.totalPage = _p.totalPages;
@@ -99,7 +105,7 @@ export default class GroupService extends Service {
       })),
       matrix,
       pagination: params,
-    } as IDataWithPagination;
+    } satisfies IDataWithPagination;
   }
 
   /**
@@ -224,7 +230,9 @@ export default class GroupService extends Service {
           serviceName: GroupService.name,
           action: 'create',
           json: { obj },
-          message: `${auth.fullname} is created group ${obj.name}`,
+          message: `${auth.fullname ?? auth.username} is created group ${
+            obj.name
+          }`,
           createdAt: new Date(),
           createdBy: auth.userId,
           createdUsername: auth.username,
@@ -234,11 +242,11 @@ export default class GroupService extends Service {
           ipAddress: auth.ipAddress,
         };
 
-        this.addLog([{ flag: `${GroupService.name}`, payload }]);
+        void this.addLog([{ flag: `${GroupService.name}`, payload }]);
         return {
           messages: ['Grup', DEFAULT_SUCCESS],
           payload: group,
-        } as IMessages;
+        } satisfies IMessages;
       })
       .catch((e) => {
         throw e;
@@ -270,7 +278,12 @@ export default class GroupService extends Service {
         throw e;
       });
 
-    if (!isExists) throw { rawErrors: ['Group tidak ditemukan'] } as IApiError;
+    if (!isExists)
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'Group tidak ditemukan'
+      );
+
     return await prisma
       .$transaction(async (tx) => {
         await tx.group.update({ data: obj, where: { id } }).catch((e) => {
@@ -281,7 +294,9 @@ export default class GroupService extends Service {
           serviceName: GroupService.name,
           action: 'update',
           json: { before: isExists, after: obj },
-          message: `${auth.fullname} is updated group from ${isExists.name} to ${obj.name}`,
+          message: `${auth.fullname ?? auth.username} is updated group from ${
+            isExists.name
+          } to ${obj.name}`,
           createdAt: new Date(),
           createdBy: auth.userId,
           createdUsername: auth.username,
@@ -291,10 +306,10 @@ export default class GroupService extends Service {
           ipAddress: auth.ipAddress,
         };
 
-        this.addLog([{ flag: `${GroupService.name}`, payload }]);
+        void this.addLog([{ flag: `${GroupService.name}`, payload }]);
         return {
           messages: ['Grup', DEFAULT_UPDATED],
-        } as IMessages;
+        } satisfies IMessages;
       })
       .catch((e) => {
         throw e;
@@ -319,9 +334,10 @@ export default class GroupService extends Service {
         throw e;
       });
     if (check.length > 0)
-      throw {
-        rawErrors: ['Group masih digunakan oleh beberapa user'],
-      } as IApiError;
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'Group masih digunakan oleh beberapa user'
+      );
 
     const type = await prisma.type
       .findFirst({ where: { groupId: id } })
@@ -329,9 +345,10 @@ export default class GroupService extends Service {
         throw e;
       });
     if (type)
-      throw {
-        rawErrors: ['Group masih digunakan oleh beberapa Peran'],
-      } as IApiError;
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'Group masih digunakan oleh beberapa Peran'
+      );
 
     const isExists = await prisma.group
       .findFirst({ where: { id, recordStatus: 'A' } })
@@ -339,7 +356,11 @@ export default class GroupService extends Service {
         throw e;
       });
 
-    if (!isExists) throw { rawErrors: ['Group tidak ditemukan'] } as IApiError;
+    if (!isExists)
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'Group tidak Kami temukan'
+      );
 
     return await prisma
       .$transaction(async (tx) => {
@@ -351,7 +372,9 @@ export default class GroupService extends Service {
           serviceName: GroupService.name,
           action: 'delete',
           json: { id, before: isExists },
-          message: `${auth.fullname} is deleted group ${isExists.name}`,
+          message: `${auth.fullname ?? auth.username} is deleted group ${
+            isExists.name
+          }`,
           createdAt: new Date(),
           createdBy: auth.userId,
           createdUsername: auth.username,
@@ -361,10 +384,10 @@ export default class GroupService extends Service {
           ipAddress: auth.ipAddress,
         };
 
-        this.addLog([{ flag: `${GroupService.name}`, payload }]);
+        void this.addLog([{ flag: `${GroupService.name}`, payload }]);
         return {
           messages: ['Grup', DEFAULT_DELETED],
-        } as IMessages;
+        } satisfies IMessages;
       })
       .catch((e) => {
         throw e;

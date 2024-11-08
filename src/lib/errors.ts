@@ -1,4 +1,4 @@
-import { HttpStatusCode } from 'axios';
+import { type HttpStatusCode } from 'axios';
 
 export function isAPIError(obj: any): obj is IApiError {
   return true;
@@ -7,6 +7,7 @@ export interface IApiError extends Error {
   statusCode: number;
   rawErrors?: string[];
   relogin?: boolean;
+  fields?: Record<string, any> | undefined;
 }
 
 export class ApiError extends Error implements IApiError {
@@ -40,7 +41,8 @@ export const setError = (
   statusCode: HttpStatusCode,
   message: string,
   relogin: boolean = false,
-  stack?: string
+  stack?: string,
+  fields?: Record<string, any> | undefined
 ) => {
   const error: IApiError = {
     statusCode,
@@ -48,39 +50,8 @@ export const setError = (
     message,
     stack,
     relogin,
+    fields,
   };
 
   return error;
 };
-
-export class HttpBadRequestError extends ApiError {
-  constructor(
-    message: string,
-    errors: string[],
-    fields?: Record<string, any> | undefined
-  ) {
-    super(HttpStatusCode.BadRequest, message, errors, fields);
-  }
-}
-
-export class HttpInternalServerError extends ApiError {
-  constructor(
-    message: string,
-    errors?: string[],
-    fields?: Record<string, any> | undefined
-  ) {
-    super(HttpStatusCode.InternalServerError, message, errors, fields);
-  }
-}
-
-export class HttpUnAuthorizedError extends ApiError {
-  constructor(message: string) {
-    super(HttpStatusCode.Unauthorized, message);
-  }
-}
-
-export class HttpNotFoundError extends ApiError {
-  constructor(message: string, errors?: string[]) {
-    super(HttpStatusCode.NotFound, message, errors);
-  }
-}
