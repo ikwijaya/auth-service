@@ -174,7 +174,8 @@ export class AuthValidate {
       await this.sessionInDatabase(id, token).catch((e) => {
         throw e;
       });
-      if (!this.isActive) return { relogin: true } satisfies IKickLogin;
+      if (!this.isActive)
+        return { relogin: true, payload: undefined } satisfies IKickLogin;
 
       return await this.fetchDatabase(id, formId, groupId, username).catch(
         (e) => {
@@ -189,7 +190,8 @@ export class AuthValidate {
       await this.sessionInRedis(username).catch((e) => {
         throw e;
       });
-      if (!this.isActive) return { relogin: true } satisfies IKickLogin;
+      if (!this.isActive)
+        return { relogin: true, payload: undefined } satisfies IKickLogin;
 
       // checking uac in redis
       await this.getRedis(username).catch((e) => {

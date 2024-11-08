@@ -1,28 +1,24 @@
 import { type Request, type Response, type NextFunction } from 'express';
-import { HttpBadRequestError } from '@/lib/errors';
+import { HttpStatusCode } from 'axios';
+import { setError } from '@/lib/errors';
 import logger from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { type IUserMatrix, type IUserAccount } from '@/dto/common.dto';
-import { MATRIX_FAIL_01, MATRIX_FAIL_03 } from '@/utils/constants';
+import { MATRIX_FAIL_01 } from '@/utils/constants';
 import { ROLE_ACTION } from '@/enums/role.enum';
 
 export default class MatrixValidator {
   static validate = (roleAction: ROLE_ACTION = ROLE_ACTION.read) => {
     return async (req: Request, _res: Response, next: NextFunction) => {
-      const validationErrorText = 'not authenticated';
       try {
         const auth: IUserAccount = req.userAccount;
         if (!auth.typeId && !auth.formId)
-          next(new HttpBadRequestError(validationErrorText, [MATRIX_FAIL_01]));
+          next(setError(HttpStatusCode.BadRequest, MATRIX_FAIL_01));
         else {
           if (!auth.formId)
-            next(
-              new HttpBadRequestError(validationErrorText, [MATRIX_FAIL_01])
-            );
+            next(setError(HttpStatusCode.BadRequest, MATRIX_FAIL_01));
           else if (!auth.typeId)
-            next(
-              new HttpBadRequestError(validationErrorText, [MATRIX_FAIL_01])
-            );
+            next(setError(HttpStatusCode.BadRequest, MATRIX_FAIL_01));
           else {
             const matrix: IFetchMatrix = await fetchMatrix(
               auth.typeId,
@@ -38,15 +34,12 @@ export default class MatrixValidator {
             if (matrix.isAllow && matrix.userMatrix) {
               req.userMatrix = matrix.userMatrix;
               next();
-            } else
-              next(
-                new HttpBadRequestError(validationErrorText, [MATRIX_FAIL_03])
-              );
+            } else next(setError(HttpStatusCode.BadRequest, MATRIX_FAIL_01));
           }
         }
       } catch (e) {
         logger.error(e);
-        next(new HttpBadRequestError(validationErrorText, [e.message]));
+        next(setError(HttpStatusCode.BadRequest, MATRIX_FAIL_01, e.message));
       }
     };
   };

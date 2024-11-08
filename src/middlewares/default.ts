@@ -1,8 +1,8 @@
 import { type NextFunction, type Request, type Response } from 'express';
 import { HttpStatusCode } from 'axios';
 import dayjs from 'dayjs';
-import { type IApiError } from '@/lib/errors';
 import { AUTH_BAD_00, AUTH_BAD_01 } from '@/utils/constants';
+import { setError } from '@/lib/errors';
 
 /**
  *
@@ -19,10 +19,7 @@ export const verifyTimestamp = async (
   const timestamp = headers.timestamp;
   const format = 'YYYY-MM-DDTHH:mm:ssZ';
 
-  if (!timestamp)
-    res
-      .status(HttpStatusCode.Unauthorized)
-      .send({ rawErrors: [AUTH_BAD_00] } as IApiError);
+  if (!timestamp) res.send(setError(HttpStatusCode.Unauthorized, AUTH_BAD_00));
   else {
     const valid = dayjs(timestamp as string, format, true).isValid();
     const notExpired = dayjs(timestamp as string).isAfter(
@@ -31,13 +28,9 @@ export const verifyTimestamp = async (
 
     if (valid && notExpired) next();
     else
-      res.status(HttpStatusCode.Unauthorized).send({
-        rawErrors: [
-          AUTH_BAD_01,
-          `Device time ${timestamp}`,
-          `Server time ${new Date()}`,
-        ],
-      } as IApiError);
+      res
+        .status(HttpStatusCode.Unauthorized)
+        .send(setError(HttpStatusCode.Unauthorized, AUTH_BAD_01));
   }
 };
 
@@ -56,15 +49,9 @@ export const verifyApiKey = async (
   const apikey = headers.apikey;
   const API_KEY = process.env.API_KEY;
 
-  if (!apikey)
-    res
-      .status(HttpStatusCode.Unauthorized)
-      .send({ rawErrors: [AUTH_BAD_00] } as IApiError);
+  if (!apikey) res.send(setError(HttpStatusCode.Unauthorized, AUTH_BAD_00));
   else {
-    if (apikey == API_KEY) next();
-    else
-      res.status(HttpStatusCode.Unauthorized).send({
-        rawErrors: [AUTH_BAD_01],
-      } as IApiError);
+    if (apikey === API_KEY) next();
+    else res.send(setError(HttpStatusCode.Unauthorized, AUTH_BAD_00));
   }
 };

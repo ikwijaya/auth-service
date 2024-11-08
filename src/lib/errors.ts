@@ -29,6 +29,30 @@ export class ApiError extends Error implements IApiError {
   }
 }
 
+/**
+ *
+ * @param statusCode
+ * @param message
+ * @param stack
+ * @returns
+ */
+export const setError = (
+  statusCode: HttpStatusCode,
+  message: string,
+  relogin: boolean = false,
+  stack?: string
+) => {
+  const error: IApiError = {
+    statusCode,
+    name: 'Error',
+    message,
+    stack,
+    relogin,
+  };
+
+  return error;
+};
+
 export class HttpBadRequestError extends ApiError {
   constructor(
     message: string,

@@ -5,19 +5,18 @@ import {
   validate,
 } from 'class-validator';
 import { type Request, type Response, type NextFunction } from 'express';
-import { HttpBadRequestError } from '@/lib/errors';
+import { HttpStatusCode } from 'axios';
+import { setError } from '@/lib/errors';
 import logger from '@/lib/logger';
-import { REQVAL_FAIL_00 } from '@/utils/constants';
 
 export default class RequestValidator {
   static validate = <T>(classInstance: ClassConstructor<T>) => {
     return async (req: Request, _res: Response, next: NextFunction) => {
-      const validationErrorText = REQVAL_FAIL_00;
       try {
         const convertedObject = plainToInstance(classInstance, req.body);
         const errors = await validate(
           convertedObject as Record<string, unknown>,
-          { whitelist: true } as ValidatorOptions
+          { whitelist: true } satisfies ValidatorOptions
         ).catch((e) => {
           throw e;
         });
@@ -29,11 +28,11 @@ export default class RequestValidator {
         } else {
           const rawErrors: string[] = getAllConstraintKeys(errors);
           logger.error(rawErrors);
-          next(new HttpBadRequestError(validationErrorText, rawErrors));
+          next(setError(HttpStatusCode.BadRequest, rawErrors.join('\n')));
         }
       } catch (e) {
         logger.error(e);
-        next(new HttpBadRequestError(validationErrorText, [e.message]));
+        next(setError(HttpStatusCode.BadRequest, e.message));
       }
     };
   };
