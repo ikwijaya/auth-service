@@ -279,23 +279,25 @@ model BullUser {
 
 /// The underlying view does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 view UserGroupView {
-  id          Int         @unique
+  id          Int        @unique
   revId       Int?
-  groupId     Int?
-  typeId      Int?
-  makedBy     Int?
+  groupId     Int
+  userId      Int
+  typeId      Int
+  makedBy     Int
   checkedBy   Int?
-  makedAt     DateTime?
+  makedAt     DateTime
   checkedAt   DateTime?
-  actionCode  actionCode?
-  rowAction   rowAction?
-  sysAction   sysAction?
+  actionCode  actionCode
+  rowAction   rowAction
+  sysAction   sysAction
   changelog   String?
-  isDefault   Boolean?
-  makedName   String?
+  isDefault   Boolean
+  makedName   String
   checkedName String?
-  groupName   String?
-  typeName    String?
+  fullName    String
+  groupName   String
+  typeName    String
 }
 
 enum actionCode {

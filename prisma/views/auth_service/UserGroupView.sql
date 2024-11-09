@@ -6,6 +6,10 @@ SELECT
     COALESCE(_appr."groupId", _rej."groupId")
   ) AS "groupId",
   COALESCE(
+    _wait."userId",
+    COALESCE(_appr."userId", _rej."userId")
+  ) AS "userId",
+  COALESCE(
     _wait."typeId",
     COALESCE(_appr."typeId", _rej."typeId")
   ) AS "typeId",
@@ -54,6 +58,10 @@ SELECT
     COALESCE(_appr."checkedName", _rej."checkedName")
   ) AS "checkedName",
   COALESCE(
+    _wait."fullName",
+    COALESCE(_appr."fullName", _rej."fullName")
+  ) AS "fullName",
+  COALESCE(
     _wait."groupName",
     COALESCE(_appr."groupName", _rej."groupName")
   ) AS "groupName",
@@ -70,6 +78,7 @@ FROM
           SELECT
             _base.id,
             _base."mainId",
+            _base."userId",
             _base."groupId",
             _base."typeId",
             _base."makedBy",
@@ -83,6 +92,7 @@ FROM
             _base."isDefault",
             COALESCE(maked.username, maked.fullname) AS "makedName",
             COALESCE(checked.username, checked.fullname) AS "checkedName",
+            COALESCE(u.username, u.fullname) AS "fullName",
             g.name AS "groupName",
             t.name AS "typeName"
           FROM
@@ -91,7 +101,10 @@ FROM
                 (
                   (
                     (
-                      "UserGroup" _base
+                      (
+                        "UserGroup" _base
+                        LEFT JOIN "User" u ON ((_base."userId" = u.id))
+                      )
                       LEFT JOIN "User" maked ON ((_base."makedBy" = maked.id))
                     )
                     LEFT JOIN "User" checked ON ((_base."checkedBy" = checked.id))
@@ -125,6 +138,7 @@ FROM
         SELECT
           _base.id,
           _base."mainId",
+          _base."userId",
           _base."groupId",
           _base."typeId",
           _base."makedBy",
@@ -138,6 +152,7 @@ FROM
           _base."isDefault",
           COALESCE(maked.username, maked.fullname) AS "makedName",
           COALESCE(checked.username, checked.fullname) AS "checkedName",
+          COALESCE(u.username, u.fullname) AS "fullName",
           g.name AS "groupName",
           t.name AS "typeName"
         FROM
@@ -146,7 +161,10 @@ FROM
               (
                 (
                   (
-                    "UserGroup" _base
+                    (
+                      "UserGroup" _base
+                      LEFT JOIN "User" u ON ((_base."userId" = u.id))
+                    )
                     LEFT JOIN "User" maked ON ((_base."makedBy" = maked.id))
                   )
                   LEFT JOIN "User" checked ON ((_base."checkedBy" = checked.id))
@@ -180,6 +198,7 @@ FROM
       SELECT
         _base.id,
         _base."mainId",
+        _base."userId",
         _base."groupId",
         _base."typeId",
         _base."makedBy",
@@ -193,6 +212,7 @@ FROM
         _base."isDefault",
         COALESCE(maked.username, maked.fullname) AS "makedName",
         COALESCE(checked.username, checked.fullname) AS "checkedName",
+        COALESCE(u.username, u.fullname) AS "fullName",
         g.name AS "groupName",
         t.name AS "typeName"
       FROM
@@ -201,7 +221,10 @@ FROM
             (
               (
                 (
-                  "UserGroup" _base
+                  (
+                    "UserGroup" _base
+                    LEFT JOIN "User" u ON ((_base."userId" = u.id))
+                  )
                   LEFT JOIN "User" maked ON ((_base."makedBy" = maked.id))
                 )
                 LEFT JOIN "User" checked ON ((_base."checkedBy" = checked.id))

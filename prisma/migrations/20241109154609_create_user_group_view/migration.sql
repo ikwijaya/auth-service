@@ -6,6 +6,7 @@ as
 select 	main.id,
 		coalesce(_wait.id, coalesce(_appr.id, _rej.id)) as "revId",
 		coalesce(_wait."groupId", coalesce(_appr."groupId", _rej."groupId")) as "groupId",
+		coalesce(_wait."userId", coalesce(_appr."userId", _rej."userId")) as "userId",
 		coalesce(_wait."typeId", coalesce(_appr."typeId", _rej."typeId")) as "typeId",
 		coalesce(_wait."makedBy", coalesce(_appr."makedBy", _rej."makedBy")) as "makedBy",
 		coalesce(_wait."checkedBy", coalesce(_appr."checkedBy", _rej."checkedBy")) as "checkedBy",
@@ -18,6 +19,7 @@ select 	main.id,
 		coalesce(_wait."isDefault", coalesce(_appr."isDefault", _rej."isDefault")) as "isDefault",
 		coalesce(_wait."makedName", coalesce(_appr."makedName", _rej."makedName")) as "makedName",
 		coalesce(_wait."checkedName", coalesce(_appr."checkedName", _rej."checkedName")) as "checkedName",
+		coalesce(_wait."fullName", coalesce(_appr."fullName", _rej."fullName")) as "fullName",
 		coalesce(_wait."groupName", coalesce(_appr."groupName", _rej."groupName")) as "groupName",
 		coalesce(_wait."typeName", coalesce(_appr."typeName", _rej."typeName")) as "typeName"
 
@@ -26,6 +28,7 @@ from 	"MainUserGroup" as main
 left join (
 	select 	_base.id,
 			_base."mainId",
+			_base."userId",
 			_base."groupId",
 			_base."typeId",
 			_base."makedBy",
@@ -39,9 +42,11 @@ left join (
 			_base."isDefault",
 			coalesce(maked.username, maked.fullname) as "makedName",
 			coalesce(checked.username, checked.fullname) as "checkedName",
+			coalesce(u.username, u.fullname) as "fullName",
 			g."name" as "groupName",
 			t."name" as "typeName"
 	from 	"UserGroup" as _base
+	left join "User" as u on _base."userId" = u.id
 	left join "User" as maked on _base."makedBy" = maked.id
 	left join "User" as checked on _base."checkedBy" = checked.id
 	left join "Group" as g on _base."groupId" = g.id
@@ -61,6 +66,7 @@ left join (
 left join (
 	select 	_base.id,
 			_base."mainId",
+			_base."userId",
 			_base."groupId",
 			_base."typeId",
 			_base."makedBy",
@@ -74,9 +80,11 @@ left join (
 			_base."isDefault",
 			coalesce(maked.username, maked.fullname) as "makedName",
 			coalesce(checked.username, checked.fullname) as "checkedName",
+			coalesce(u.username, u.fullname) as "fullName",
 			g."name" as "groupName",
 			t."name" as "typeName"
 	from 	"UserGroup" as _base
+	left join "User" as u on _base."userId" = u.id
 	left join "User" as maked on _base."makedBy" = maked.id
 	left join "User" as checked on _base."checkedBy" = checked.id
 	left join "Group" as g on _base."groupId" = g.id
@@ -96,6 +104,7 @@ left join (
 left join (
 	select 	_base.id,
 			_base."mainId",
+			_base."userId",
 			_base."groupId",
 			_base."typeId",
 			_base."makedBy",
@@ -109,9 +118,11 @@ left join (
 			_base."isDefault",
 			coalesce(maked.username, maked.fullname) as "makedName",
 			coalesce(checked.username, checked.fullname) as "checkedName",
+			coalesce(u.username, u.fullname) as "fullName",
 			g."name" as "groupName",
 			t."name" as "typeName"
 	from 	"UserGroup" as _base
+	left join "User" as u on _base."userId" = u.id
 	left join "User" as maked on _base."makedBy" = maked.id
 	left join "User" as checked on _base."checkedBy" = checked.id
 	left join "Group" as g on _base."groupId" = g.id

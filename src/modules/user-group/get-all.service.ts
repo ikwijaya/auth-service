@@ -9,7 +9,7 @@ import createPagination from '@/lib/pagination';
 import prisma from '@/lib/prisma';
 import Service from '@/lib/service';
 
-export default class GetAllUserService extends Service {
+export default class GetAllUserGroupService extends Service {
   /**
    *
    * @param matrix
@@ -19,21 +19,16 @@ export default class GetAllUserService extends Service {
    */
   public async getAll(
     auth: IUserAccount,
+    userId: number,
     matrix: IUserMatrix,
     pagination: IPagination,
     qs?: IQuerySearch
   ) {
-    /// filtering custom, how to define it
-    // const userGroupView = await prisma.userGroupView.findMany({
-    //   select: { userId: true },
-    //   where: { groupId: auth.groupId },
-    // });
-
-    const totalRows = await prisma.user.count({
+    const totalRows = await prisma.userGroupView.count({
       where: {
-        username: { contains: qs?.keyword, mode: 'insensitive' },
-        recordStatus: 'A',
-        createdAt: {
+        revId: { not: null },
+        userId,
+        makedAt: {
           gte: qs?.startDate ? new Date(qs.startDate) : undefined,
           lt: qs?.endDate ? new Date(qs.endDate) : undefined,
         },
@@ -56,54 +51,41 @@ export default class GetAllUserService extends Service {
     pagination.totalPage = _p.totalPages;
     pagination.totalRows = _p.totalRows;
 
-    const items = await prisma.user
+    const items = await prisma.userGroupView
       .findMany({
         take: _p.take,
         skip: _p.skip,
         where: {
-          username: { contains: qs?.keyword, mode: 'insensitive' },
-          recordStatus: 'A',
-          createdAt: {
+          revId: { not: null },
+          userId,
+          makedAt: {
             gte: qs?.startDate ? new Date(qs.startDate) : undefined,
             lt: qs?.endDate ? new Date(qs.endDate) : undefined,
           },
         },
         select: {
           id: true,
-          username: true,
-          fullname: true,
-          email: true,
-          recordStatus: true,
-          createdAt: true,
-          updatedAt: true,
-          createdUser: {
-            select: {
-              username: true,
-              fullname: true,
-            },
-          },
-          updatedUser: {
-            select: {
-              username: true,
-              fullname: true,
-            },
-          },
-          UserGroup: {
-            select: {
-              group: {
-                select: {
-                  name: true,
-                },
-              },
-              type: {
-                select: {
-                  name: true,
-                },
-              },
-            },
-          },
+          revId: true,
+          userId: true,
+          groupId: true,
+          typeId: true,
+          groupName: true,
+          typeName: true,
+          makedAt: true,
+          makedBy: true,
+          makedName: true,
+          checkedAt: true,
+          checkedBy: true,
+          checkedName: true,
+          changelog: true,
+          actionCode: true,
+          sysAction: true,
+          rowAction: true,
+          isDefault: true,
         },
-        orderBy: [{ createdAt: 'desc' }],
+        orderBy: {
+          makedAt: 'desc',
+        },
       })
       .catch((e) => {
         throw e;
@@ -113,9 +95,13 @@ export default class GetAllUserService extends Service {
       items: items.map((e) => ({
         ...e,
         is_update:
-          matrix.is_update && e.id !== auth.userId && e.recordStatus === 'A',
+          matrix.is_update &&
+          e.userId !== auth.userId &&
+          e.actionCode !== 'WAITING',
         is_delete:
-          matrix.is_delete && e.id !== auth.userId && e.recordStatus === 'A',
+          matrix.is_delete &&
+          e.userId !== auth.userId &&
+          e.actionCode !== 'WAITING',
       })),
       matrix,
       pagination,
