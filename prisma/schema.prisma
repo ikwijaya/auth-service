@@ -69,6 +69,9 @@ model User {
   WizardsCreate    Wizard[]    @relation("createdUser")
   WizardsUpdate    Wizard[]    @relation("updatedUser")
   UserGroup        UserGroup[]
+
+  UserGroupMaker   UserGroup[] @relation("makedUser")
+  UserGroupChecker UserGroup[] @relation("checkedUser")
 }
 
 model UserGroup {
@@ -89,6 +92,8 @@ model UserGroup {
   user         User       @relation(fields: [userId], references: [id])
   group        Group      @relation(fields: [groupId], references: [id])
   type         Type       @relation(fields: [typeId], references: [id])
+  makedUser    User       @relation("makedUser", fields: [makedBy], references: [id])
+  checkedUser  User?      @relation("checkedUser", fields: [checkedBy], references: [id])
 
   @@index([userId], map: "userIdUG_Index")
   @@index([groupId], map: "groupIdUG_Index")
@@ -283,6 +288,6 @@ model BullUser {
   id           Int      @id @default(autoincrement())
   username     String
   role         bullRole
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime @default(now())
   recordStatus String
 }

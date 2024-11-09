@@ -21,6 +21,16 @@ export default class CreateUserService extends Service {
     if (verify.valid)
       throw setError(HttpStatusCode.Conflict, obj.username + ' already exists');
 
+    const user = await prisma.user.findFirst({
+      where: { username: obj.username },
+    });
+
+    if (user)
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'Username is already exist ' + (user.fullname ?? user.username)
+      );
+
     const validGroups = await this.validGroups(
       obj.userGroups.map((e) => e.groupId)
     );
@@ -38,7 +48,7 @@ export default class CreateUserService extends Service {
     if (!validRoles.match)
       throw setError(
         HttpStatusCode.InternalServerError,
-        'Sorry, we can`t found some groups.'
+        'Sorry, your selected role not related with selected group'
       );
 
     const fullname: string = verify.entries[0].displayName as string;

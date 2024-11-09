@@ -26,13 +26,13 @@ export class CreateUserDto {
   @IsString({ message: 'Silakan isi Username' })
   username: string;
 
-  @ValidateNested({ message: 'User group tidak di set' })
+  @ValidateNested({ message: 'User group tidak di set', each: true })
   @Type(() => UserGroupDto)
   userGroups: UserGroupDto[];
 }
 
 export class UpdateUserDto {
-  @ValidateNested({ message: 'User group tidak di set' })
+  @ValidateNested({ message: 'User group tidak di set', each: true })
   @Type(() => UserGroupDto)
   userGroups: UserGroupDto[];
 }
