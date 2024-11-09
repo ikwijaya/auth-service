@@ -52,10 +52,19 @@ class Environment implements IEnvironment {
     this._appUrl = value;
   }
 
+  /**
+   *
+   * @param key
+   * @returns
+   */
   private resolveEnvPath(key: CommonEnvKeys): string {
     // On priority bar, .env.[NODE_ENV] has higher priority than default env file (.env)
     // If both are not resolved, error is thrown.
-    const rootDir: string = path.resolve(__dirname, '../../');
+    const rootDir: string =
+      this._env === Environments.TEST
+        ? path.resolve(__dirname, '../../')
+        : appConfig.envFile;
+
     const envPath = path.resolve(rootDir, EnvironmentFile[key]);
     const defaultEnvPath = path.resolve(rootDir, EnvironmentFile.DEFAULT);
     if (!fs.existsSync(envPath) && !fs.existsSync(defaultEnvPath)) {
@@ -83,8 +92,8 @@ class Environment implements IEnvironment {
      * which another user can get your .env file
      * comment line 86 (const envPath...),87 (configDot...) when error, then uncomment line 89 (configDot...)
      */
-    const envPath = this.resolveEnvPath(envKey);
-    configDotenv({ path: envPath });
+    const path = this.resolveEnvPath(envKey);
+    configDotenv({ path });
 
     this.validateEnvValues();
   }

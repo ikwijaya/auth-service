@@ -1,34 +1,12 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["metrics", "views"]
+  previewFeatures = ["metrics", "views", "typedSql"]
   binaryTargets   = ["native", "rhel-openssl-1.1.x"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-enum actionCode {
-  WAITING
-  APPROVED
-  REJECTED
-}
-
-enum sysAction {
-  SUBMIT
-  DRAFT
-}
-
-enum rowAction {
-  CREATE
-  UPDATE
-  DELETE
-}
-
-enum bullRole {
-  ro
-  rw
 }
 
 model User {
@@ -66,17 +44,21 @@ model User {
   ldap             Ldap?       @relation(fields: [ldapId], references: [id])
   updatedUser      User?       @relation("updatedUser", fields: [updatedBy], references: [id])
   UsersUpdate      User[]      @relation("updatedUser")
+  UserGroupChecker UserGroup[] @relation("checkedUser")
+  UserGroupMaker   UserGroup[] @relation("makedUser")
+  UserGroup        UserGroup[]
   WizardsCreate    Wizard[]    @relation("createdUser")
   WizardsUpdate    Wizard[]    @relation("updatedUser")
-  UserGroup        UserGroup[]
+}
 
-  UserGroupMaker   UserGroup[] @relation("makedUser")
-  UserGroupChecker UserGroup[] @relation("checkedUser")
+model MainUserGroup {
+  id        Int         @id @default(autoincrement())
+  createdAt DateTime    @default(now())
+  UserGroup UserGroup[]
 }
 
 model UserGroup {
-  id           Int        @id @default(autoincrement())
-  isDefault    Boolean    @default(false)
+  id           Int           @id @default(autoincrement())
   userId       Int
   groupId      Int
   typeId       Int
@@ -85,15 +67,18 @@ model UserGroup {
   makedBy      Int
   makedAt      DateTime
   actionCode   actionCode
-  rowAction    rowAction  @default(CREATE)
-  sysAction    sysAction  @default(SUBMIT)
+  rowAction    rowAction     @default(CREATE)
+  sysAction    sysAction     @default(SUBMIT)
   changelog    String?
-  recordStatus String     @default("A")
-  user         User       @relation(fields: [userId], references: [id])
-  group        Group      @relation(fields: [groupId], references: [id])
-  type         Type       @relation(fields: [typeId], references: [id])
-  makedUser    User       @relation("makedUser", fields: [makedBy], references: [id])
-  checkedUser  User?      @relation("checkedUser", fields: [checkedBy], references: [id])
+  recordStatus String        @default("A")
+  isDefault    Boolean       @default(false)
+  mainId       Int
+  checkedUser  User?         @relation("checkedUser", fields: [checkedBy], references: [id])
+  group        Group         @relation(fields: [groupId], references: [id])
+  main         MainUserGroup @relation(fields: [mainId], references: [id])
+  makedUser    User          @relation("makedUser", fields: [makedBy], references: [id])
+  type         Type          @relation(fields: [typeId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
 
   @@index([userId], map: "userIdUG_Index")
   @@index([groupId], map: "groupIdUG_Index")
@@ -251,12 +236,12 @@ model Session {
   token        String    @unique
   userId       Int
   type         String
-  fcmUrl       String?
   createdAt    DateTime  @default(now())
   createdBy    Int
   updatedAt    DateTime? @updatedAt
   updatedBy    Int?
   recordStatus String    @default("A")
+  fcmUrl       String?
   createdUser  User      @relation("createdUser", fields: [createdBy], references: [id])
   updatedUser  User?     @relation("updatedUser", fields: [updatedBy], references: [id])
   user         User      @relation(fields: [userId], references: [id])
@@ -290,4 +275,47 @@ model BullUser {
   role         bullRole
   createdAt    DateTime @default(now())
   recordStatus String
+}
+
+/// The underlying view does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+view UserGroupView {
+  id          Int         @unique
+  revId       Int?
+  groupId     Int?
+  typeId      Int?
+  makedBy     Int?
+  checkedBy   Int?
+  makedAt     DateTime?
+  checkedAt   DateTime?
+  actionCode  actionCode?
+  rowAction   rowAction?
+  sysAction   sysAction?
+  changelog   String?
+  isDefault   Boolean?
+  makedName   String?
+  checkedName String?
+  groupName   String?
+  typeName    String?
+}
+
+enum actionCode {
+  WAITING
+  APPROVED
+  REJECTED
+}
+
+enum sysAction {
+  SUBMIT
+  DRAFT
+}
+
+enum rowAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum bullRole {
+  ro
+  rw
 }

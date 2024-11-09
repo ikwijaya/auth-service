@@ -7,6 +7,9 @@ CREATE TYPE "sysAction" AS ENUM ('SUBMIT', 'DRAFT');
 -- CreateEnum
 CREATE TYPE "rowAction" AS ENUM ('CREATE', 'UPDATE', 'DELETE');
 
+-- CreateEnum
+CREATE TYPE "bullRole" AS ENUM ('ro', 'rw');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" SERIAL NOT NULL,
@@ -27,20 +30,30 @@ CREATE TABLE "User" (
 );
 
 -- CreateTable
+CREATE TABLE "MainUserGroup" (
+    "id" SERIAL NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MainUserGroup_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "UserGroup" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "groupId" INTEGER NOT NULL,
     "typeId" INTEGER NOT NULL,
-    "checkedBy" INTEGER NOT NULL,
-    "checkedAt" TIMESTAMP(3) NOT NULL,
+    "checkedBy" INTEGER,
+    "checkedAt" TIMESTAMP(3),
     "makedBy" INTEGER NOT NULL,
     "makedAt" TIMESTAMP(3) NOT NULL,
     "actionCode" "actionCode" NOT NULL,
     "rowAction" "rowAction" NOT NULL DEFAULT 'CREATE',
     "sysAction" "sysAction" NOT NULL DEFAULT 'SUBMIT',
     "changelog" TEXT,
-    "recordStatus" BOOLEAN NOT NULL,
+    "recordStatus" TEXT NOT NULL DEFAULT 'A',
+    "isDefault" BOOLEAN NOT NULL DEFAULT false,
+    "mainId" INTEGER NOT NULL,
 
     CONSTRAINT "UserGroup_pkey" PRIMARY KEY ("id")
 );
@@ -191,6 +204,7 @@ CREATE TABLE "Session" (
     "updatedAt" TIMESTAMP(3),
     "updatedBy" INTEGER,
     "recordStatus" TEXT NOT NULL DEFAULT 'A',
+    "fcmUrl" TEXT,
 
     CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
 );
@@ -206,6 +220,29 @@ CREATE TABLE "Options" (
     "recordStatus" TEXT NOT NULL DEFAULT 'A',
 
     CONSTRAINT "Options_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RateLimit" (
+    "id" SERIAL NOT NULL,
+    "projectId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL,
+    "device" TEXT,
+    "ipAddress" TEXT,
+    "apiKey" TEXT,
+
+    CONSTRAINT "RateLimit_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "BullUser" (
+    "id" SERIAL NOT NULL,
+    "username" TEXT NOT NULL,
+    "role" "bullRole" NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "recordStatus" TEXT NOT NULL,
+
+    CONSTRAINT "BullUser_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -248,13 +285,22 @@ ALTER TABLE "User" ADD CONSTRAINT "User_ldapId_fkey" FOREIGN KEY ("ldapId") REFE
 ALTER TABLE "User" ADD CONSTRAINT "User_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "UserGroup" ADD CONSTRAINT "UserGroup_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "UserGroup" ADD CONSTRAINT "UserGroup_checkedBy_fkey" FOREIGN KEY ("checkedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "UserGroup" ADD CONSTRAINT "UserGroup_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "Group"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "UserGroup" ADD CONSTRAINT "UserGroup_mainId_fkey" FOREIGN KEY ("mainId") REFERENCES "MainUserGroup"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UserGroup" ADD CONSTRAINT "UserGroup_makedBy_fkey" FOREIGN KEY ("makedBy") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "UserGroup" ADD CONSTRAINT "UserGroup_typeId_fkey" FOREIGN KEY ("typeId") REFERENCES "Type"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UserGroup" ADD CONSTRAINT "UserGroup_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Wizard" ADD CONSTRAINT "Wizard_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
