@@ -13,28 +13,24 @@ export function useQsParse(qs: IQuerySearch & Record<string, any>) {
     .join('&');
 }
 
+interface OrderByField {
+  sort: 'asc' | 'desc';
+  nulls: 'last' | 'first';
+}
+type OrderByValue = 'asc' | 'desc' | OrderByField;
+export type OrderBy = Record<string, OrderByValue>;
+
 /**
  *
  * @param qs
- * @param _default is { createdAt: 'desc' }
+ * @param _default is { createdAt: 'desc' } or { updatedAt: { sort: 'desc', nulls: 'last' } }
  * @returns
- * { sort: 'desc', nulls: 'last' }
  */
 export function useOrderBy(
   qs?: IQuerySearch & Record<string, any>,
-  _default: Record<
-    string,
-    'asc' | 'desc' | { sort: 'asc' | 'desc'; nulls: 'last' | 'first' }
-  > = { createdAt: { sort: 'desc', nulls: 'last' } }
-): Record<
-  string,
-  'asc' | 'desc' | { sort: 'asc' | 'desc'; nulls: 'last' | 'first' }
-> {
-  let orderBy: Record<
-    string,
-    'asc' | 'desc' | { sort: 'asc' | 'desc'; nulls: 'last' | 'first' }
-  > = {};
-
+  _default: OrderBy = { createdAt: { sort: 'desc', nulls: 'last' } }
+): OrderBy {
+  let orderBy: OrderBy = {};
   const sortBy = qs?.sortBy?.split(',');
   const sortOrder = qs?.sortOrder?.split(',');
 
