@@ -23,7 +23,7 @@ export default class DualControlService extends Service {
       throw e;
     });
     const payload: ILogQMes = {
-      serviceName: DualControlService.name,
+      serviceName: auth.logAction,
       action: 'checker',
       json: { users },
       message: `${auth.fullname ?? auth.username} is inquiry checker`,
@@ -57,7 +57,7 @@ export default class DualControlService extends Service {
       throw e;
     });
     const payload: ILogQMes = {
-      serviceName: DualControlService.name,
+      serviceName: auth.logAction,
       action: 'email-responder',
       json: { users },
       message: `${auth.fullname ?? auth.username} is inquiry email-responder`,

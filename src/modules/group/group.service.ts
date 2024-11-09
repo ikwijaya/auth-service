@@ -227,7 +227,7 @@ export default class GroupService extends Service {
           });
 
         const payload: ILogQMes = {
-          serviceName: GroupService.name,
+          serviceName: auth.logAction,
           action: 'create',
           json: { obj },
           message: `${auth.fullname ?? auth.username} is created group ${
@@ -242,7 +242,7 @@ export default class GroupService extends Service {
           ipAddress: auth.ipAddress,
         };
 
-        void this.addLog([{ flag: `${GroupService.name}`, payload }]);
+        void this.addLog([{ flag: GroupService.name, payload }]);
         return {
           messages: ['Grup', DEFAULT_SUCCESS],
           payload: group,
@@ -291,7 +291,7 @@ export default class GroupService extends Service {
         });
 
         const payload: ILogQMes = {
-          serviceName: GroupService.name,
+          serviceName: auth.logAction,
           action: 'update',
           json: { before: isExists, after: obj },
           message: `${auth.fullname ?? auth.username} is updated group from ${
@@ -306,7 +306,7 @@ export default class GroupService extends Service {
           ipAddress: auth.ipAddress,
         };
 
-        void this.addLog([{ flag: `${GroupService.name}`, payload }]);
+        void this.addLog([{ flag: GroupService.name, payload }]);
         return {
           messages: ['Grup', DEFAULT_UPDATED],
         } satisfies IMessages;
@@ -369,7 +369,7 @@ export default class GroupService extends Service {
         });
 
         const payload: ILogQMes = {
-          serviceName: GroupService.name,
+          serviceName: auth.logAction,
           action: 'delete',
           json: { id, before: isExists },
           message: `${auth.fullname ?? auth.username} is deleted group ${
@@ -384,7 +384,7 @@ export default class GroupService extends Service {
           ipAddress: auth.ipAddress,
         };
 
-        void this.addLog([{ flag: `${GroupService.name}`, payload }]);
+        void this.addLog([{ flag: GroupService.name, payload }]);
         return {
           messages: ['Grup', DEFAULT_DELETED],
         } satisfies IMessages;

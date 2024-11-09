@@ -77,8 +77,8 @@ model UserGroup {
   userId       Int
   groupId      Int
   typeId       Int
-  checkedBy    Int
-  checkedAt    DateTime
+  checkedBy    Int?
+  checkedAt    DateTime?
   makedBy      Int
   makedAt      DateTime
   actionCode   actionCode

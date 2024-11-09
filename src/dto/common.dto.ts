@@ -29,6 +29,7 @@ export interface IUserAccount {
   };
   device?: string | undefined;
   ipAddress?: string | undefined;
+  logAction?: string;
 }
 
 export interface IUserMatrix {

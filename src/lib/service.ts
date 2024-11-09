@@ -3,7 +3,8 @@ import { Prisma } from '@prisma/client';
 import logger from './logger';
 import redisConnection from './ioredis';
 import prisma from '@/lib/prisma';
-import { type ILogQMes, type INotifQMes } from '@/dto/queue.dto';
+import { type IAddQueue } from '@/dto/queue.dto';
+import { type IUserAccount } from '@/dto/common.dto';
 
 /**
  * `Api` Represents an abstract base class for common expressJS API operations.
@@ -147,7 +148,7 @@ abstract class Service {
    *
    * @param data
    */
-  public async addLog(data: Array<{ flag: string; payload: ILogQMes }>) {
+  public async addLog(data: IAddQueue[]) {
     if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`);
 
     const now = Date.now();
@@ -175,7 +176,7 @@ abstract class Service {
    *
    * @param data
    */
-  public async addNotif(data: Array<{ flag: string; payload: INotifQMes }>) {
+  public async addNotif(data: IAddQueue[]) {
     if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`);
 
     const now = Date.now();
@@ -243,6 +244,14 @@ abstract class Service {
     const value = await redisConnection.get(key);
     if (!value) return null;
     await redisConnection.del(key);
+  }
+
+  /**
+   * superadmin is user which is not have group
+   * @param auth
+   */
+  public isSuperadmin(auth: IUserAccount) {
+    return !auth.groupId;
   }
 }
 

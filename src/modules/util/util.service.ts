@@ -16,7 +16,7 @@ export default class UtilService {
   public async verifyUser(
     auth: IUserAccount,
     username: string
-  ): Promise<{ valid: boolean; entries: Entry[] }> {
+  ): Promise<{ valid: boolean; ldapId: number; entries: Entry[] }> {
     if (!auth.ldapId)
       throw setError(
         HttpStatusCode.InternalServerError,
@@ -102,6 +102,7 @@ export default class UtilService {
 
       return {
         valid,
+        ldapId: ldap.id,
         entries: searchEntries,
       };
       // eslint-disable-next-line no-useless-catch

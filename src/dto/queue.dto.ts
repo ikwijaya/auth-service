@@ -37,3 +37,8 @@ export class INotifQMes {
     this.serviceName = process.env.APP_NAME;
   }
 }
+
+export class IAddQueue {
+  flag: string;
+  payload: ILogQMes | INotifQMes;
+}

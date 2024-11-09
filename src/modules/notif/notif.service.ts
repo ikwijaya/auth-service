@@ -45,9 +45,9 @@ export class PushNotifService extends Service {
     /// send
     const data: Array<{ flag: string; payload: INotifQMes }> = [];
     data.push({
-      flag: 'notif',
+      flag: PushNotifService.name,
       payload: {
-        serviceName: PushNotifService.name,
+        serviceName: auth.logAction,
         action: 'bad-login',
         json: obj,
         message: obj.message,

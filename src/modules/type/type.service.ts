@@ -352,7 +352,7 @@ export default class TypeService extends Service {
         });
 
         const payload: ILogQMes = {
-          serviceName: TypeService.name,
+          serviceName: auth.logAction,
           action: 'create',
           json: { obj, matrix },
           message: `${auth.fullname ?? auth.username} is created peran ${
@@ -367,7 +367,7 @@ export default class TypeService extends Service {
           ipAddress: auth.ipAddress,
         };
 
-        void this.addLog([{ flag: `${TypeService.name}`, payload }]);
+        void this.addLog([{ flag: TypeService.name, payload }]);
         return {
           messages: ['Peran', DEFAULT_SUCCESS],
           payload: type,
@@ -480,7 +480,7 @@ export default class TypeService extends Service {
         });
 
         const payload: ILogQMes = {
-          serviceName: TypeService.name,
+          serviceName: auth.logAction,
           action: 'update',
           json: { matrix, before: exist, after: obj },
           message: `${auth.fullname ?? auth.username} is updated peran from ${
@@ -495,7 +495,7 @@ export default class TypeService extends Service {
           ipAddress: auth.ipAddress,
         };
 
-        void this.addLog([{ flag: `${TypeService.name}`, payload }]);
+        void this.addLog([{ flag: TypeService.name, payload }]);
         return {
           messages: ['Peran', DEFAULT_UPDATED],
         } satisfies IMessages;
@@ -561,7 +561,7 @@ export default class TypeService extends Service {
         });
 
         const payload: ILogQMes = {
-          serviceName: TypeService.name,
+          serviceName: auth.logAction,
           action: 'delete',
           json: { before: exist, id },
           message: `${auth.fullname ?? auth.username} is deleted peran ${
@@ -576,7 +576,7 @@ export default class TypeService extends Service {
           ipAddress: auth.ipAddress,
         };
 
-        void this.addLog([{ flag: `${TypeService.name}`, payload }]);
+        void this.addLog([{ flag: TypeService.name, payload }]);
         return {
           messages: ['Peran', DEFAULT_DELETED],
         } satisfies IMessages;

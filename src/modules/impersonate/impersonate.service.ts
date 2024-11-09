@@ -77,7 +77,7 @@ export default class ImpersonateService extends Service {
       throw e;
     });
     const payload: ILogQMes = {
-      serviceName: ImpersonateService.name,
+      serviceName: auth.logAction,
       action: 'switch-login',
       json: {
         username: auth.username,
@@ -100,7 +100,7 @@ export default class ImpersonateService extends Service {
       ipAddress: auth.ipAddress,
     };
 
-    void this.addLog([{ flag: `${ImpersonateService.name}`, payload }]);
+    void this.addLog([{ flag: ImpersonateService.name, payload }]);
     return {
       accessToken: token,
       expiresIn: process.env.JWT_EXPIRE,
@@ -162,7 +162,7 @@ export default class ImpersonateService extends Service {
       });
 
     const payload: ILogQMes = {
-      serviceName: ImpersonateService.name,
+      serviceName: auth.logAction,
       action: 'groups',
       json: {
         username: auth.username,
@@ -182,7 +182,7 @@ export default class ImpersonateService extends Service {
       ipAddress: auth.ipAddress,
     };
 
-    void this.addLog([{ flag: `${ImpersonateService.name}`, payload }]);
+    void this.addLog([{ flag: ImpersonateService.name, payload }]);
     return {
       messages: [],
       payload: { groups: Array.from(new Set(groups)) },

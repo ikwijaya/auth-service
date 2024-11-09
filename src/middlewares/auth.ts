@@ -133,6 +133,7 @@ export const verifyAccount = async (
                 payload.token = req.jwtToken;
                 payload.ipAddress = ipAddress;
                 payload.device = userAgent;
+                payload.logAction = req.url;
 
                 req.userAccount = payload;
                 req.jwtVerify = verify;
