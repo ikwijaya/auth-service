@@ -18,6 +18,7 @@ import {
   DEFAULT_UPDATED,
 } from '@/utils/constants';
 import { type ILogQMes } from '@/dto/queue.dto';
+import { useOrderBy } from '@/lib/parsed-qs';
 
 export default class GroupService extends Service {
   /**
@@ -33,6 +34,9 @@ export default class GroupService extends Service {
     params: IPagination,
     qs?: IQuerySearch
   ): Promise<IDataWithPagination> {
+    const orderBy = useOrderBy(qs, {
+      updatedAt: { sort: 'desc', nulls: 'last' },
+    });
     const totalRows = await prisma.group.count({
       where: {
         name: { contains: qs?.keyword, mode: 'insensitive' },
@@ -91,7 +95,7 @@ export default class GroupService extends Service {
             },
           },
         },
-        orderBy: [{ createdAt: 'desc' }],
+        orderBy,
       })
       .catch((e) => {
         throw e;

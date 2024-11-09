@@ -20,6 +20,7 @@ import {
   DEFAULT_UPDATED,
 } from '@/utils/constants';
 import { type ILogQMes } from '@/dto/queue.dto';
+import { useOrderBy } from '@/lib/parsed-qs';
 
 export default class TypeService extends Service {
   private readonly AccessService = new AccessService();
@@ -36,6 +37,9 @@ export default class TypeService extends Service {
     params: IPagination,
     qs?: IQuerySearch
   ): Promise<IDataWithPagination> {
+    const orderBy = useOrderBy(qs, {
+      updatedAt: { sort: 'desc', nulls: 'last' },
+    });
     const totalRows = await prisma.type.count({
       where: {
         recordStatus: 'A',
@@ -71,9 +75,7 @@ export default class TypeService extends Service {
             lt: qs?.endDate ? new Date(qs.endDate) : undefined,
           },
         },
-        orderBy: {
-          updatedAt: { sort: 'desc', nulls: 'last' },
-        },
+        orderBy,
         select: {
           id: true,
           name: true,

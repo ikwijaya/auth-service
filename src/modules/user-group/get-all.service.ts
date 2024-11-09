@@ -6,6 +6,7 @@ import {
   type IUserMatrix,
 } from '@/dto/common.dto';
 import createPagination from '@/lib/pagination';
+import { useOrderBy } from '@/lib/parsed-qs';
 import prisma from '@/lib/prisma';
 import Service from '@/lib/service';
 
@@ -24,6 +25,10 @@ export default class GetAllUserGroupService extends Service {
     pagination: IPagination,
     qs?: IQuerySearch
   ) {
+    const orderBy = useOrderBy(qs, {
+      makedAt: { sort: 'desc', nulls: 'last' },
+    });
+
     const totalRows = await prisma.userGroupView.count({
       where: {
         revId: { not: null },
@@ -83,9 +88,7 @@ export default class GetAllUserGroupService extends Service {
           rowAction: true,
           isDefault: true,
         },
-        orderBy: {
-          makedAt: 'desc',
-        },
+        orderBy,
       })
       .catch((e) => {
         throw e;
