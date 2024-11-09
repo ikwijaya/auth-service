@@ -1,7 +1,7 @@
 import { HttpStatusCode } from 'axios';
 import CreateUserService from './create.service';
 import { type IMessages, type IUserAccount } from '@/dto/common.dto';
-import { type UpdateUserDto } from '@/dto/user.dto';
+import { type UserGroupDto, type UpdateUserDto } from '@/dto/user.dto';
 import { setError } from '@/lib/errors';
 import prisma from '@/lib/prisma';
 import Service from '@/lib/service';
@@ -66,22 +66,54 @@ export default class UpdateUserService extends Service {
         'Sorry, your selected role not related with selected group'
       );
 
-    return await prisma.$transaction(async (tx) => {
+    const _createObjs = exUserGroups.filter(
+      (e) => !e.mainId && e.rowAction === 'CREATE'
+    );
+
+    const _updateObjs = exUserGroups.filter(
+      (e) => e.mainId && e.rowAction === 'UPDATE'
+    );
+
+    const _deleteObjs = exUserGroups.filter(
+      (e) => e.mainId && e.rowAction === 'DELETE'
+    );
+
+    await this._create(auth, id, _createObjs);
+    await Promise.all([
+      this._create(auth, id, _createObjs),
+      this._update(auth, id, _updateObjs),
+      this._delete(auth, id, _deleteObjs),
+    ]);
+
+    return { messages: ['Created'] } satisfies IMessages;
+  }
+
+  /**
+   *
+   * @param auth
+   * @param id
+   * @param data
+   * @returns
+   */
+  private async _create(auth: IUserAccount, id: number, data: UserGroupDto[]) {
+    await prisma.$transaction(async (tx) => {
+      const main = await tx.mainUserGroup.create({
+        data: { createdAt: new Date() },
+      });
+
       await tx.userGroup.createMany({
         data: this.isSuperadmin(auth)
-          ? obj.userGroups
-              .filter((e) => !groupIds.includes(e.groupId))
-              .map((e) => ({
-                ...e,
-                userId: id,
-                makedAt: new Date(),
-                makedBy: auth.userId,
-                actionCode: 'APPROVED',
-                rowAction: 'CREATE',
-                sysAction: 'SUBMIT',
-              }))
-          : obj.userGroups
-              .filter((e) => !groupIds.includes(e.groupId))
+          ? data.map((e) => ({
+              ...e,
+              mainId: main.id,
+              userId: id,
+              makedAt: new Date(),
+              makedBy: auth.userId,
+              actionCode: 'APPROVED',
+              rowAction: 'CREATE',
+              sysAction: 'SUBMIT',
+            }))
+          : data
               .filter((e) => e.groupId === auth.groupId)
               .map((e) => ({
                 ...e,
@@ -94,15 +126,20 @@ export default class UpdateUserService extends Service {
               })),
       });
 
+      const groups: Array<{ name: string }> = await prisma.group.findMany({
+        where: { id: { in: data.map((e) => e.groupId) } },
+      });
+
       const logs: IAddQueue[] = [];
       logs.push({
         flag: CreateUserService.name,
         payload: {
           serviceName: auth.logAction,
-          action: 'update',
+          action: this._create.name,
           message:
             (auth.fullname ?? auth.username) +
-            ' submit request for update user',
+            ' submit request for create new access for groups ' +
+            groups.map((e) => e.name).join(', '),
           createdAt: new Date(),
           createdBy: auth.userId,
           createdUsername: auth.username,
@@ -110,23 +147,135 @@ export default class UpdateUserService extends Service {
           roleName: auth.type?.name,
           device: auth.device,
           ipAddress: auth.ipAddress,
-          json: {
-            obj,
-            user: {
-              id: user.id,
-              username: user.username,
-              dn: user.ldapDn,
-              fullname: user.fullname,
-              email: user.email,
-            },
-          },
+          json: { data },
         },
       });
 
       void this.addLog(logs);
-      return {
-        messages: ['Created'],
-      } satisfies IMessages;
+    });
+  }
+
+  /**
+   *
+   * @param auth
+   * @param id
+   * @param data
+   * @returns
+   */
+  private async _update(auth: IUserAccount, id: number, data: UserGroupDto[]) {
+    await prisma.$transaction(async (tx) => {
+      await tx.userGroup.createMany({
+        data: this.isSuperadmin(auth)
+          ? data.map((e) => ({
+              ...e,
+              userId: id,
+              makedAt: new Date(),
+              makedBy: auth.userId,
+              actionCode: 'APPROVED',
+              rowAction: 'UPDATE',
+              sysAction: 'SUBMIT',
+            }))
+          : data
+              .filter((e) => e.groupId === auth.groupId)
+              .map((e) => ({
+                ...e,
+                userId: id,
+                makedAt: new Date(),
+                makedBy: auth.userId,
+                actionCode: 'WAITING',
+                rowAction: 'UPDATE',
+                sysAction: 'SUBMIT',
+              })),
+      });
+
+      const groups: Array<{ name: string }> = await prisma.group.findMany({
+        where: { id: { in: data.map((e) => e.groupId) } },
+      });
+
+      const logs: IAddQueue[] = [];
+      logs.push({
+        flag: CreateUserService.name,
+        payload: {
+          serviceName: auth.logAction,
+          action: this._update.name,
+          message:
+            (auth.fullname ?? auth.username) +
+            ' submit request for update existing access for groups ' +
+            groups.map((e) => e.name).join(', '),
+          createdAt: new Date(),
+          createdBy: auth.userId,
+          createdUsername: auth.username,
+          roleId: auth.typeId,
+          roleName: auth.type?.name,
+          device: auth.device,
+          ipAddress: auth.ipAddress,
+          json: { data },
+        },
+      });
+
+      void this.addLog(logs);
+    });
+  }
+
+  /**
+   *
+   * @param auth
+   * @param id
+   * @param data
+   * @returns
+   */
+  private async _delete(auth: IUserAccount, id: number, data: UserGroupDto[]) {
+    await prisma.$transaction(async (tx) => {
+      await tx.userGroup.createMany({
+        data: this.isSuperadmin(auth)
+          ? data.map((e) => ({
+              ...e,
+              userId: id,
+              makedAt: new Date(),
+              makedBy: auth.userId,
+              actionCode: 'APPROVED',
+              rowAction: 'DELETE',
+              sysAction: 'SUBMIT',
+            }))
+          : data
+              .filter((e) => e.groupId === auth.groupId)
+              .map((e) => ({
+                ...e,
+                userId: id,
+                makedAt: new Date(),
+                makedBy: auth.userId,
+                actionCode: 'WAITING',
+                rowAction: 'DELETE',
+                sysAction: 'SUBMIT',
+              })),
+      });
+
+      const groups: Array<{ name: string }> = await prisma.group.findMany({
+        where: { id: { in: data.map((e) => e.groupId) } },
+      });
+
+      const logs: IAddQueue[] = [];
+      logs.push({
+        flag: CreateUserService.name,
+        payload: {
+          serviceName: auth.logAction,
+          action: this._delete.name,
+          message:
+            (auth.fullname ?? auth.username) +
+            ' submit request for delete existing access for groups ' +
+            groups.map((e) => e.name).join(', '),
+          createdAt: new Date(),
+          createdBy: auth.userId,
+          createdUsername: auth.username,
+          roleId: auth.typeId,
+          roleName: auth.type?.name,
+          device: auth.device,
+          ipAddress: auth.ipAddress,
+          json: { data },
+        },
+      });
+
+      void this.addLog(logs);
     });
   }
 

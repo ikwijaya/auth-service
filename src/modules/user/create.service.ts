@@ -74,11 +74,16 @@ export default class CreateUserService extends Service {
           throw e;
         });
 
+      const main = await tx.mainUserGroup.create({
+        data: { createdAt: new Date() },
+      });
+
       await tx.userGroup
         .createMany({
           data: this.isSuperadmin(auth)
             ? obj.userGroups.map((e) => ({
                 ...e,
+                mainId: main.id,
                 userId: user.id,
                 makedAt: new Date(),
                 makedBy: auth.userId,
@@ -90,6 +95,7 @@ export default class CreateUserService extends Service {
                 .filter((e) => e.groupId === auth.groupId)
                 .map((e) => ({
                   ...e,
+                  mainId: main.id,
                   userId: user.id,
                   makedAt: new Date(),
                   makedBy: auth.userId,

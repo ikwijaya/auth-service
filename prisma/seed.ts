@@ -89,7 +89,7 @@ const ldap: ILdap = {
   dc: 'mylab.local',
   ouLogin: 'User Accounts',
   ouSearch: 'Special Users',
-  username: 'chb0030',
+  username: 'chb0001',
   password: 'Chb$2018',
   createdAt: new Date(),
   usePlain: true,
@@ -210,10 +210,17 @@ async function seed(): Promise<void> {
       throw e;
     });
 
-    if (_user)
+    if (_user) {
+      const main = await prisma.mainUserGroup.create({
+        data: {
+          createdAt: new Date(),
+        },
+      });
+
       await tx.userGroup
         .create({
           data: {
+            mainId: main.id,
             userId: _user.id,
             typeId: 1,
             groupId: 1,
@@ -227,6 +234,7 @@ async function seed(): Promise<void> {
         .catch((e) => {
           throw e;
         });
+    }
 
     /// get all form then build access
     const forms = await tx.form
@@ -269,6 +277,15 @@ async function seed(): Promise<void> {
     });
     await tx.access.createMany({ data: accessItems }).catch((e) => {
       throw e;
+    });
+
+    await tx.bullUser.createMany({
+      data: user.map((e) => ({
+        username: e.username,
+        role: 'ro',
+        createdAt: new Date(),
+        recordStatus: 'A',
+      })),
     });
   });
 }
@@ -337,5 +354,5 @@ const env = process.env.NODE_ENV;
 const dbUrl = process.env.DATABASE_URL;
 const allow = dbUrl && /@localhost\b/i.test(dbUrl);
 
-if (env === 'development' && dbUrl && allow) void main();
-else logger.info(`only development env can do a seed process`);
+if (env === 'test' && dbUrl && allow) void main();
+else logger.info(`only test env can do a seed process`);
