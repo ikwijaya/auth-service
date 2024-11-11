@@ -40,7 +40,7 @@ export class CreateTypeDto {
     message: 'Kolom Group tidak boleh kosong',
   })
   @IsOptional()
-  groupId: number;
+  groupId: number | undefined;
 
   @ValidateNested()
   @Type(() => IMatrixMenu)
@@ -78,7 +78,7 @@ export class UpdateTypeDto {
     message: 'Kolom Group tidak boleh kosong',
   })
   @IsOptional()
-  groupId: number;
+  groupId: number | undefined;
 
   @ValidateNested()
   @Type(() => IMatrixMenu)

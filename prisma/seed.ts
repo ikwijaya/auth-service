@@ -1,17 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import logger from '../src/lib/logger';
-
-interface IForm {
-  id: number;
-  name: string;
-  url?: string;
-  parentId?: number;
-  sort: number;
-  isReadOnly: boolean;
-  createdAt: Date;
-  createdBy: number;
-  icon?: string;
-}
+import formJson from './json/form.json';
 
 interface IGroup {
   id: number;
@@ -24,7 +13,7 @@ interface IPrivilegeType {
   id: number;
   groupId?: number;
   name: string;
-  mode: string;
+  mode?: string;
   flag?: string;
   createdAt: Date;
   createdBy: number;
@@ -78,6 +67,11 @@ const user: IUser[] = [
     username: 'chb0001',
     createdAt: new Date(),
   },
+  {
+    id: 2,
+    username: 'chb0002',
+    createdAt: new Date(),
+  },
 ];
 
 const ldap: ILdap = {
@@ -108,88 +102,17 @@ const privilege: IPrivilegeType[] = [
     id: 1,
     name: 'superadmin',
     mode: 'superadmin',
+    groupId: undefined,
     createdAt: new Date(),
     createdBy: 1,
   },
-];
-
-const form: IForm[] = [
   {
-    id: 1,
-    name: 'Dashboard',
-    url: '/dashboard',
-    sort: 1,
-    isReadOnly: true,
+    id: 2,
+    name: 'administrator',
+    mode: undefined,
+    groupId: undefined,
     createdAt: new Date(),
     createdBy: 1,
-    icon: 'flaticon-home',
-  },
-
-  {
-    id: 3,
-    name: 'Pengelolaan Pengguna',
-    sort: 3,
-    isReadOnly: true,
-    createdAt: new Date(),
-    createdBy: 1,
-    icon: 'flaticon-user-3',
-  },
-  {
-    id: 4,
-    name: 'Laporan',
-    sort: 4,
-    isReadOnly: true,
-    createdAt: new Date(),
-    createdBy: 1,
-    icon: 'ph ph-gear',
-  },
-
-  /// child pengelolaan pengguna
-  {
-    id: 8,
-    name: 'Peran',
-    sort: 1,
-    isReadOnly: false,
-    url: '/privilege',
-    createdAt: new Date(),
-    createdBy: 1,
-    icon: 'ph ph-gear',
-    parentId: 3,
-  },
-  {
-    id: 9,
-    name: 'Grup',
-    sort: 2,
-    isReadOnly: false,
-    url: '/group',
-    createdAt: new Date(),
-    createdBy: 1,
-    icon: 'ph ph-gear',
-    parentId: 3,
-  },
-  {
-    id: 11,
-    name: 'Pengguna',
-    sort: 4,
-    isReadOnly: false,
-    url: '/user',
-    createdAt: new Date(),
-    createdBy: 1,
-    icon: 'ph ph-gear',
-    parentId: 3,
-  },
-
-  /// child laporan
-  {
-    id: 13,
-    name: 'Akses Catatan',
-    sort: 1,
-    isReadOnly: false,
-    url: '/audit-logs',
-    createdAt: new Date(),
-    createdBy: 1,
-    icon: 'ph ph-gear',
-    parentId: 4,
   },
 ];
 
@@ -201,43 +124,34 @@ async function seed(): Promise<void> {
     await tx.ldap.create({ data: ldap });
     await tx.group.create({ data: { ...group } });
     await tx.type.createMany({ data: privilege });
-    await tx.form.createMany({ data: form });
+    await tx.form.createMany({
+      data: formJson.map((e) => ({ ...e, createdBy: 1 })),
+    });
+    await tx.bullUser.createMany({
+      data: user.map((e) => ({
+        username: e.username,
+        role: 'ro',
+        createdAt: new Date(),
+        recordStatus: 'A',
+      })),
+    });
   });
 
-  await prisma.$transaction(async (tx) => {
-    await tx.user.update({ data: { ldapId: 1 }, where: { id: 1 } });
-    const _user = await tx.user.findFirst({ where: { id: 1 } }).catch((e) => {
-      throw e;
-    });
+  /**
+   *
+   * @param ids
+   */
+  async function matrixUser(
+    ids: number[] = [],
+    typeId: number,
+    createdBy: number
+  ) {
+    const where =
+      ids.length > 0
+        ? { recordStatus: 'A', id: { in: ids } }
+        : { recordStatus: 'A' };
 
-    if (_user) {
-      const main = await prisma.mainUserGroup.create({
-        data: {
-          createdAt: new Date(),
-        },
-      });
-
-      await tx.userGroup
-        .create({
-          data: {
-            mainId: main.id,
-            userId: _user.id,
-            typeId: 1,
-            groupId: 1,
-            checkedAt: new Date(),
-            checkedBy: 1,
-            makedAt: new Date(),
-            makedBy: 1,
-            actionCode: 'APPROVED',
-          },
-        })
-        .catch((e) => {
-          throw e;
-        });
-    }
-
-    /// get all form then build access
-    const forms = await tx.form
+    const forms = await prisma.form
       .findMany({
         orderBy: [{ sort: 'asc' }],
         select: {
@@ -250,9 +164,7 @@ async function seed(): Promise<void> {
             },
           },
         },
-        where: {
-          recordStatus: 'A',
-        },
+        where,
       })
       .catch((e) => {
         throw e;
@@ -272,21 +184,59 @@ async function seed(): Promise<void> {
       ] as IRole[],
     }));
 
-    const accessItems = await buildMatrix(matrix, 1, 1).catch((e) => {
-      throw e;
-    });
-    await tx.access.createMany({ data: accessItems }).catch((e) => {
-      throw e;
-    });
+    return await buildMatrix(matrix, typeId, createdBy);
+  }
 
-    await tx.bullUser.createMany({
-      data: user.map((e) => ({
-        username: e.username,
-        role: 'ro',
-        createdAt: new Date(),
-        recordStatus: 'A',
-      })),
-    });
+  /**
+   * seed for create user identity
+   */
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({ data: { ldapId: 1 }, where: { id: 1 } });
+    const _userAdministrator = await tx.user
+      .findFirst({ where: { id: 2 } })
+      .catch((e) => {
+        throw e;
+      });
+
+    if (_userAdministrator) {
+      const main = await prisma.mainUserGroup.create({
+        data: {
+          createdAt: new Date(),
+        },
+      });
+
+      await tx.userGroup
+        .create({
+          data: {
+            mainId: main.id,
+            userId: _userAdministrator.id,
+            typeId: 2,
+            groupId: 1,
+            checkedAt: new Date(),
+            checkedBy: 1,
+            makedAt: new Date(),
+            makedBy: 1,
+            actionCode: 'APPROVED',
+          },
+        })
+        .catch((e) => {
+          throw e;
+        });
+    }
+
+    /**
+     * 1 = /dashboard
+     * 2 = /group
+     * 5 = User Management
+     *  105 = /user/list
+     *  106 = /user/approval
+     */
+    // define matrix for role superadmin and administrator
+    const matrixForSuperadmin = await matrixUser([1, 2, 5, 105, 106], 1, 0);
+    await tx.access.createMany({ data: matrixForSuperadmin });
+
+    const matrixForAdministrator = await matrixUser([1, 2, 5, 105, 106], 2, 0);
+    await tx.access.createMany({ data: matrixForAdministrator });
   });
 }
 

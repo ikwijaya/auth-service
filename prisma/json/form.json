@@ -1,0 +1,96 @@
+[
+  {
+    "id": 1,
+    "name": "Dashboard",
+    "url": "/dashboard",
+    "sort": 1,
+    "isReadOnly": true,
+    "icon": "flaticon-home"
+  },
+  {
+    "id": 2,
+    "name": "Group Management",
+    "url": "/group",
+    "sort": 2,
+    "isReadOnly": false,
+    "icon": "flaticon-user-3"
+  },
+  {
+    "id": 3,
+    "name": "Document Management",
+    "sort": 4,
+    "isReadOnly": true,
+    "icon": "ph ph-gear"
+  },
+  {
+    "id": 4,
+    "name": "Prompt Management",
+    "sort": 4,
+    "isReadOnly": true,
+    "icon": "ph ph-gear"
+  },
+  {
+    "id": 5,
+    "name": "User Management",
+    "sort": 4,
+    "isReadOnly": true,
+    "icon": "ph ph-gear"
+  },
+
+  {
+    "id": 101,
+    "name": "Document List",
+    "sort": 1,
+    "isReadOnly": false,
+    "url": "/document/list",
+    "icon": "ph ph-gear",
+    "parentId": 3
+  },
+  {
+    "id": 102,
+    "name": "Document Approval",
+    "sort": 1,
+    "isReadOnly": false,
+    "url": "/document/approval",
+    "icon": "ph ph-gear",
+    "parentId": 3
+  },
+
+  {
+    "id": 103,
+    "name": "Prompt List",
+    "sort": 1,
+    "isReadOnly": false,
+    "url": "/prompt/list",
+    "icon": "ph ph-gear",
+    "parentId": 4
+  },
+  {
+    "id": 104,
+    "name": "Prompt Approval",
+    "sort": 1,
+    "isReadOnly": false,
+    "url": "/prompt/approval",
+    "icon": "ph ph-gear",
+    "parentId": 4
+  },
+
+  {
+    "id": 105,
+    "name": "User List",
+    "sort": 1,
+    "isReadOnly": false,
+    "url": "/user/list",
+    "icon": "ph ph-gear",
+    "parentId": 4
+  },
+  {
+    "id": 106,
+    "name": "User Approval",
+    "sort": 1,
+    "isReadOnly": false,
+    "url": "/user/approval",
+    "icon": "ph ph-gear",
+    "parentId": 4
+  }
+]

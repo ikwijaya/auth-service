@@ -82,6 +82,12 @@ export default class TypeService extends Service {
           mode: true,
           flag: true,
           note: true,
+          groupId: true,
+          group: {
+            select: {
+              name: true,
+            },
+          },
           recordStatus: true,
           createdAt: true,
           updatedAt: true,
@@ -273,6 +279,7 @@ export default class TypeService extends Service {
     auth: IUserAccount,
     obj: CreateTypeDto
   ): Promise<IApiError | IMessages> {
+    if (!this.isSuperadmin(auth)) obj.groupId = auth.groupId;
     const groupExists = await prisma.group
       .findFirst({ where: { id: obj.groupId, recordStatus: 'A' } })
       .catch((e) => {
@@ -284,13 +291,14 @@ export default class TypeService extends Service {
         HttpStatusCode.InternalServerError,
         'Group tidak Kami temukan'
       );
+
     return await prisma
       .$transaction(async (tx) => {
         const type = await tx.type
           .create({
             data: {
               name: obj.name,
-              groupId: obj.groupId,
+              groupId: auth.groupId,
               mode: obj.mode,
               createdAt: new Date(),
               createdBy: auth.userId,
@@ -388,10 +396,14 @@ export default class TypeService extends Service {
   public async support(
     auth: IUserAccount
   ): Promise<{ groups: Record<string, any>; forms: unknown }> {
+    const where = auth.groupId
+      ? { id: auth.groupId, recordStatus: 'A' }
+      : { recordStatus: 'A' };
+
     const groups = await prisma.group
       .findMany({
         select: { id: true, name: true },
-        where: { recordStatus: 'A' },
+        where,
       })
       .catch((e) => {
         throw e;
@@ -416,6 +428,7 @@ export default class TypeService extends Service {
     obj: UpdateTypeDto,
     id: number
   ): Promise<IApiError | IMessages> {
+    if (!this.isSuperadmin(auth)) obj.groupId = auth.groupId;
     const groupExists = await prisma.group
       .findFirst({ where: { id: obj.groupId, recordStatus: 'A' } })
       .catch((e) => {
@@ -435,6 +448,7 @@ export default class TypeService extends Service {
         HttpStatusCode.InternalServerError,
         'Peran tidak Kami temukan'
       );
+
     return await prisma
       .$transaction(async (tx) => {
         await tx.type
