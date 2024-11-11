@@ -403,6 +403,7 @@ export default class AuthService extends Service {
             token,
             type: 'app-cms',
             userId: user.id,
+            fcmUrl: obj.fcmUrl,
           },
         });
 

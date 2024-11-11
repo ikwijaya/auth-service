@@ -30,6 +30,7 @@ export interface IUserAccount {
   device?: string | undefined;
   ipAddress?: string | undefined;
   logAction?: string;
+  fcmUrl?: string | null;
 }
 
 export interface IUserMatrix {

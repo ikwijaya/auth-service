@@ -8,7 +8,6 @@ export class AuthValidate {
   private readonly token: string;
   private userAccount: IUserAccount | undefined;
   public expiresIn: string = '7m';
-  private isActive: null | { id: number; userId: number } | string = null;
 
   constructor(expiresIn: string = '7m', token: string) {
     this.expiresIn = expiresIn;
@@ -33,7 +32,8 @@ export class AuthValidate {
     id: number,
     formId: undefined | string,
     groupId: number,
-    username: string
+    username: string,
+    fcmUrl?: string | null
   ) {
     const user = await prisma.user
       .findFirst({
@@ -99,6 +99,7 @@ export class AuthValidate {
       type: userGroup.type,
       groupId,
       group: userGroup.group,
+      fcmUrl,
     };
 
     if (formId) this.userAccount.formId = Number(formId);
@@ -126,9 +127,9 @@ export class AuthValidate {
    *
    * @param key
    */
-  private async getRedis(username: string) {
+  private async getRedis<T>(username: string) {
     const value = await this.connection.get('uac_' + username);
-    if (value) this.userAccount = JSON.parse(value);
+    if (value) this.userAccount = JSON.parse(value) satisfies T;
   }
 
   /**
@@ -136,11 +137,13 @@ export class AuthValidate {
    * @param key
    */
   private async sessionInRedis(username: string) {
-    this.isActive = await this.connection.get('sid_' + username);
+    const output = await this.connection.get('sid_' + username);
     const ttl: number = await this.connection.ttl('sid_' + username);
 
-    logger.info('redis_token: ' + JSON.stringify(this.isActive));
+    logger.info('redis_token: ' + JSON.stringify(output));
     logger.info('ttl: ' + ttl.toString());
+
+    return output;
   }
 
   /**
@@ -149,10 +152,12 @@ export class AuthValidate {
    * @param token
    */
   private async sessionInDatabase(id: number, token: string) {
-    this.isActive = await prisma.session.findFirst({
-      select: { id: true, userId: true },
+    const output = await prisma.session.findFirst({
+      select: { id: true, userId: true, fcmUrl: true },
       where: { recordStatus: 'A', token, userId: id },
     });
+
+    return output;
   }
 
   /**
@@ -171,30 +176,34 @@ export class AuthValidate {
   ) {
     if (!process.env.REDIS_HOST) {
       logger.info('read from database only');
-      await this.sessionInDatabase(id, token).catch((e) => {
+      const session = await this.sessionInDatabase(id, token).catch((e) => {
         throw e;
       });
-      if (!this.isActive)
+      if (!session)
         return { relogin: true, payload: undefined } satisfies IKickLogin;
 
-      return await this.fetchDatabase(id, formId, groupId, username).catch(
-        (e) => {
-          throw e;
-        }
-      );
+      return await this.fetchDatabase(
+        id,
+        formId,
+        groupId,
+        username,
+        session.fcmUrl
+      ).catch((e) => {
+        throw e;
+      });
     } else {
       logger.info('read from redis+database');
       this.connect();
 
       // checking in redis first
-      await this.sessionInRedis(username).catch((e) => {
+      const session = await this.sessionInRedis(username).catch((e) => {
         throw e;
       });
-      if (!this.isActive)
+      if (!session)
         return { relogin: true, payload: undefined } satisfies IKickLogin;
 
       // checking uac in redis
-      await this.getRedis(username).catch((e) => {
+      await this.getRedis<IUserAccount>(username).catch((e) => {
         throw e;
       });
       if (this.userAccount) {

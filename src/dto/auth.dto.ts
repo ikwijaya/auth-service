@@ -23,6 +23,10 @@ export class LoginDto {
   @IsOptional()
   @IsString()
   ipAddress: string | undefined;
+
+  @IsOptional()
+  @IsString()
+  fcmUrl: string | undefined;
 }
 
 export class LoginResDto {
