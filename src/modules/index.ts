@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import Auth from './auth/auth.route';
 import Wizard from './wizard/wizard.route';
-import User from './user/user.route';
+import Security from './security/security.route';
 import Group from './group/group.route';
 import Type from './type/type.route';
 import Util from './util/util.route';
@@ -12,7 +12,7 @@ import Log from './log/log.route';
 const router: Router = Router();
 router.use(Auth);
 router.use(Wizard);
-router.use(User);
+router.use(Security);
 router.use(Group);
 router.use(Type);
 router.use(Util);

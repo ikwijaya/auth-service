@@ -393,9 +393,10 @@ export default class TypeService extends Service {
    * @param auth
    * @returns
    */
-  public async support(
-    auth: IUserAccount
-  ): Promise<{ groups: Record<string, any>; forms: unknown }> {
+  public async support(auth: IUserAccount): Promise<{
+    groups: Array<{ id: number; name: string }>;
+    forms: IMatrixMenu[];
+  }> {
     const where = auth.groupId
       ? { id: auth.groupId, recordStatus: 'A' }
       : { recordStatus: 'A' };
@@ -411,8 +412,8 @@ export default class TypeService extends Service {
 
     const matrix = await this.AccessService.support();
     return { groups, forms: matrix.forms } satisfies {
-      groups: Record<string, any>;
-      forms: unknown;
+      groups: Array<{ id: number; name: string }>;
+      forms: IMatrixMenu[];
     };
   }
 

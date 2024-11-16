@@ -3,7 +3,7 @@ import { type PageValidateDto } from '@/dto/user.dto';
 import { type IUserAccount } from '@/dto/common.dto';
 import Service from '@/lib/service';
 
-export default class UserService extends Service {
+export default class SecurityService extends Service {
   /**
    *
    * @param auth
@@ -78,65 +78,7 @@ export default class UserService extends Service {
         throw e;
       });
 
-    return { forms };
-  }
-
-  /**
-   *
-   * @param auth
-   * @returns
-   */
-  public async support(auth: IUserAccount): Promise<{
-    privileges: unknown;
-    groups: unknown;
-    status: Array<{ text: string; value: string }>;
-  }> {
-    let groupIds: number[] = [];
-    if (!auth.groupId) {
-      const getGroup = await prisma.group
-        .findMany({ select: { id: true } })
-        .catch((e) => {
-          throw e;
-        });
-      groupIds = getGroup.map((e) => e.id);
-    } else groupIds = [auth.groupId];
-
-    const groups = await prisma.group
-      .findMany({
-        where: { id: { in: groupIds } },
-        select: { id: true, name: true },
-      })
-      .catch((e) => {
-        throw e;
-      });
-
-    const privileges = await prisma.type
-      .findMany({
-        select: {
-          id: true,
-          name: true,
-          group: {
-            select: {
-              name: true,
-            },
-          },
-        },
-        where: {
-          recordStatus: 'A',
-        },
-      })
-      .catch((e) => {
-        throw e;
-      });
-
-    return {
-      privileges,
-      groups,
-      status: [
-        { text: 'Aktif', value: 'A' },
-        { text: 'Tidak Aktif', value: 'N' },
-      ],
-    };
+    return forms;
   }
 
   /**

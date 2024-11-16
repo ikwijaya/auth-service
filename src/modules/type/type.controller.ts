@@ -113,7 +113,13 @@ export default class TypeController extends Api {
    */
   public support = async (
     req: Request,
-    res: CustomResponse<Record<string, any>>,
+    res: CustomResponse<{
+      groups: Array<{
+        id: number;
+        name: string;
+      }>;
+      forms: IMatrixMenu[];
+    }>,
     next: NextFunction
   ) => {
     try {
