@@ -19,6 +19,7 @@ import {
 } from '@/utils/constants';
 import { type ILogQMes } from '@/dto/queue.dto';
 import { useOrderBy } from '@/lib/parsed-qs';
+import { ROLE_USER } from '@/enums/role.enum';
 
 export default class GroupService extends Service {
   /**
@@ -229,6 +230,35 @@ export default class GroupService extends Service {
           .catch(async (e) => {
             throw e;
           });
+
+        if (this.isSuperadmin(auth)) {
+          const venom: string = ROLE_USER.SUPERADMIN;
+          const role = await tx.type.findFirst({ where: { mode: venom } });
+
+          if (!role)
+            throw setError(
+              HttpStatusCode.InternalServerError,
+              'Role mode ' + venom + ' is not found, Please contact Developer'
+            );
+          const main = await tx.mainUserGroup.create({
+            data: { createdAt: new Date() },
+          });
+
+          await tx.userGroup.create({
+            data: {
+              mainId: main.id,
+              groupId: group.id,
+              userId: auth.userId,
+              typeId: role.id,
+              makedBy: auth.userId,
+              makedAt: new Date(),
+              checkedBy: auth.userId,
+              checkedAt: new Date(),
+              actionCode: 'APPROVED',
+              rowAction: 'CREATE',
+            },
+          });
+        }
 
         const payload: ILogQMes = {
           serviceName: auth.logAction,

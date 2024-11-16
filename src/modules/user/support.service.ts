@@ -1,4 +1,5 @@
 import { type IUserAccount } from '@/dto/common.dto';
+import { ROLE_USER } from '@/enums/role.enum';
 import prisma from '@/lib/prisma';
 import Service from '@/lib/service';
 
@@ -34,6 +35,9 @@ export default class SupportUserService extends Service {
               id: true,
               name: true,
               mode: true,
+            },
+            where: {
+              mode: { not: ROLE_USER.SUPERADMIN },
             },
           },
         },

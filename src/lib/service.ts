@@ -5,6 +5,7 @@ import redisConnection from './ioredis';
 import prisma from '@/lib/prisma';
 import { type IAddQueue } from '@/dto/queue.dto';
 import { type IUserAccount } from '@/dto/common.dto';
+import { ROLE_USER } from '@/enums/role.enum';
 
 /**
  * `Api` Represents an abstract base class for common expressJS API operations.
@@ -247,11 +248,11 @@ abstract class Service {
   }
 
   /**
-   * superadmin is user which is not have group
+   * superadmin is user which is type mode is SUPERADMIN
    * @param auth
    */
   public isSuperadmin(auth: IUserAccount) {
-    return !auth.groupId;
+    return auth.type?.mode === ROLE_USER.SUPERADMIN;
   }
 }
 

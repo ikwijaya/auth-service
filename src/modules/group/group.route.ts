@@ -4,7 +4,8 @@ import RequestValidator from '@/middlewares/request-validator';
 import MatrixValidator from '@/middlewares/matrix-validator';
 import { verifyAccount } from '@/middlewares/auth';
 import { CreateGroupDto, UpdateGroupDto } from '@/dto/group.dto';
-import { ROLE_ACTION } from '@/enums/role.enum';
+import { ROLE_ACTION, ROLE_USER } from '@/enums/role.enum';
+import PrivilegeValidator from '@/middlewares/privilege-validator';
 
 const router: Router = Router();
 const controller = new Controller();
@@ -36,6 +37,7 @@ router.get(
 router.post(
   '/master/group',
   verifyAccount,
+  PrivilegeValidator.validate([ROLE_USER.SUPERADMIN]),
   MatrixValidator.validate(ROLE_ACTION.create),
   RequestValidator.validate(CreateGroupDto),
   controller.create
@@ -43,6 +45,7 @@ router.post(
 router.put(
   '/master/group/:id',
   verifyAccount,
+  PrivilegeValidator.validate([ROLE_USER.SUPERADMIN]),
   MatrixValidator.validate(ROLE_ACTION.update),
   RequestValidator.validate(UpdateGroupDto),
   controller.update
@@ -50,6 +53,7 @@ router.put(
 router.delete(
   '/master/group/:id/persist',
   verifyAccount,
+  PrivilegeValidator.validate([ROLE_USER.SUPERADMIN]),
   MatrixValidator.validate(ROLE_ACTION.delete),
   controller.delPersistent
 );

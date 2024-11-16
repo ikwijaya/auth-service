@@ -13,7 +13,11 @@ export default class DisableUserService extends Service {
    * @param id
    * @param isActive
    */
-  public async del(auth: IUserAccount, id: number, isActive: boolean = false) {
+  public async endis(
+    auth: IUserAccount,
+    id: number,
+    isActive: boolean = false
+  ) {
     const user = await prisma.user.findFirst({
       where: { id },
     });

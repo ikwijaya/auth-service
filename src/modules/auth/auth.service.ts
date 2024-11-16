@@ -274,7 +274,10 @@ export default class AuthService extends Service {
       });
 
     if (countUserGroup === 0)
-      throw setError(HttpStatusCode.InternalServerError, LOGIN_FAIL_01);
+      throw setError(
+        HttpStatusCode.InternalServerError,
+        'You not have group to login'
+      );
 
     const userGroup = await prisma.userGroup
       .findFirst({
@@ -299,7 +302,7 @@ export default class AuthService extends Service {
     if (!userGroup)
       throw setError(
         HttpStatusCode.InternalServerError,
-        'You not have default group to login, please select group before login'
+        'Please select group before login'
       );
     else return { user, userGroup };
   }

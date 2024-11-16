@@ -21,6 +21,7 @@ import {
 } from '@/utils/constants';
 import { type ILogQMes } from '@/dto/queue.dto';
 import { useOrderBy } from '@/lib/parsed-qs';
+import { ROLE_USER } from '@/enums/role.enum';
 
 export default class TypeService extends Service {
   private readonly AccessService = new AccessService();
@@ -40,6 +41,7 @@ export default class TypeService extends Service {
     const orderBy = useOrderBy(qs, {
       updatedAt: { sort: 'desc', nulls: 'last' },
     });
+
     const totalRows = await prisma.type.count({
       where: {
         recordStatus: 'A',
@@ -108,11 +110,13 @@ export default class TypeService extends Service {
       });
 
     return {
-      items: items.map((e) => ({
-        ...e,
-        is_update: matrix.is_update && e.recordStatus === 'A',
-        is_delete: matrix.is_delete && e.recordStatus === 'A',
-      })),
+      items: items
+        .map((e) => ({
+          ...e,
+          is_update: matrix.is_update && e.recordStatus === 'A',
+          is_delete: matrix.is_delete && e.recordStatus === 'A',
+        }))
+        .filter((e) => e.mode !== ROLE_USER.SUPERADMIN),
       matrix,
       pagination: params,
     } satisfies IDataWithPagination;
@@ -239,9 +243,6 @@ export default class TypeService extends Service {
   public async get(
     id: number
   ): Promise<{ item: unknown; forms: IMatrixMenu[] }> {
-    const access = await this.AccessService.get(id).catch((e) => {
-      throw e;
-    });
     const item = await prisma.type
       .findFirst({
         where: { id },
@@ -267,7 +268,11 @@ export default class TypeService extends Service {
         throw e;
       });
 
-    return { item, forms: access.forms };
+    const access = await this.AccessService.get(id);
+    return {
+      item: item?.mode === ROLE_USER.SUPERADMIN ? null : item,
+      forms: item?.mode === ROLE_USER.SUPERADMIN ? [] : access.forms,
+    };
   }
 
   /**
@@ -280,6 +285,13 @@ export default class TypeService extends Service {
     obj: CreateTypeDto
   ): Promise<IApiError | IMessages> {
     if (!this.isSuperadmin(auth)) obj.groupId = auth.groupId;
+    if (obj.mode === ROLE_USER.SUPERADMIN)
+      throw setError(
+        HttpStatusCode.BadRequest,
+        'Mode (' + obj.mode + ') is denied!, for security reason',
+        false
+      );
+
     const groupExists = await prisma.group
       .findFirst({ where: { id: obj.groupId, recordStatus: 'A' } })
       .catch((e) => {
@@ -396,6 +408,7 @@ export default class TypeService extends Service {
   public async support(auth: IUserAccount): Promise<{
     groups: Array<{ id: number; name: string }>;
     forms: IMatrixMenu[];
+    roleType: string[];
   }> {
     const where = auth.groupId
       ? { id: auth.groupId, recordStatus: 'A' }
@@ -410,10 +423,18 @@ export default class TypeService extends Service {
         throw e;
       });
 
+    const roles: string[] = Object.values(ROLE_USER);
     const matrix = await this.AccessService.support();
-    return { groups, forms: matrix.forms } satisfies {
+    return {
+      groups,
+      forms: matrix.forms,
+      roleType: this.isSuperadmin(auth)
+        ? roles
+        : roles.filter((e) => e !== ROLE_USER.SUPERADMIN),
+    } satisfies {
       groups: Array<{ id: number; name: string }>;
       forms: IMatrixMenu[];
+      roleType: string[];
     };
   }
 
@@ -430,6 +451,13 @@ export default class TypeService extends Service {
     id: number
   ): Promise<IApiError | IMessages> {
     if (!this.isSuperadmin(auth)) obj.groupId = auth.groupId;
+    if (obj.mode === ROLE_USER.SUPERADMIN)
+      throw setError(
+        HttpStatusCode.BadRequest,
+        'Mode (' + obj.mode + ') is denied!, for security reason',
+        false
+      );
+
     const groupExists = await prisma.group
       .findFirst({ where: { id: obj.groupId, recordStatus: 'A' } })
       .catch((e) => {
