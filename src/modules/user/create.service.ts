@@ -6,6 +6,7 @@ import Service from '@/lib/service';
 import { setError } from '@/lib/errors';
 import prisma from '@/lib/prisma';
 import { type IAddQueue } from '@/dto/queue.dto';
+import { ROLE_USER } from '@/enums/role.enum';
 
 export default class CreateUserService extends Service {
   private readonly utilService = new UtilService();
@@ -18,7 +19,7 @@ export default class CreateUserService extends Service {
   public async create(auth: IUserAccount, obj: CreateUserDto) {
     const verify = await this.utilService.verifyUser(auth, obj.username);
 
-    if (verify.valid)
+    if (!verify.valid)
       throw setError(HttpStatusCode.Conflict, obj.username + ' already exists');
 
     const user = await prisma.user.findFirst({
@@ -48,7 +49,7 @@ export default class CreateUserService extends Service {
     if (!validRoles.match)
       throw setError(
         HttpStatusCode.InternalServerError,
-        'Sorry, your selected role not related with selected group'
+        'Sorry, your selected role not related with selected group. Or venom is looking for you'
       );
 
     const fullname: string = verify.entries[0].displayName as string;
@@ -87,6 +88,8 @@ export default class CreateUserService extends Service {
                 userId: user.id,
                 makedAt: new Date(),
                 makedBy: auth.userId,
+                checkedBy: auth.userId,
+                checkedAt: new Date(),
                 actionCode: 'APPROVED',
                 rowAction: 'CREATE',
                 sysAction: 'SUBMIT',
@@ -181,9 +184,11 @@ export default class CreateUserService extends Service {
     } | null> = [];
 
     const map = array.map(async (e) => {
+      const venom: string = ROLE_USER.SUPERADMIN;
       const find = await prisma.type.findFirst({
         select: {
           name: true,
+          mode: true,
           group: {
             select: {
               name: true,
@@ -197,7 +202,7 @@ export default class CreateUserService extends Service {
         },
       });
 
-      valid.push(find);
+      if (find && find.mode !== venom) valid.push(find);
     });
 
     await Promise.all(map);

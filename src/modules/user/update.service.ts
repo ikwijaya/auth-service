@@ -66,9 +66,14 @@ export default class UpdateUserService extends Service {
         'Sorry, your selected role not related with selected group'
       );
 
-    const _createObjs = exUserGroups.filter(
-      (e) => !e.mainId && e.rowAction === 'CREATE'
-    );
+    const gids = exUserGroups
+      .filter((e) => !e.mainId && e.rowAction === 'CREATE')
+      .map((e) => e.groupId);
+
+    const hasAccess = await this.hasAccess(gids, user.id);
+    const _createObjs = exUserGroups
+      .filter((e) => !e.mainId && e.rowAction === 'CREATE')
+      .filter((e) => hasAccess.includes(e.groupId));
 
     const _updateObjs = exUserGroups.filter(
       (e) => e.mainId && e.rowAction === 'UPDATE'
@@ -78,7 +83,6 @@ export default class UpdateUserService extends Service {
       (e) => e.mainId && e.rowAction === 'DELETE'
     );
 
-    await this._create(auth, id, _createObjs);
     await Promise.all([
       this._create(auth, id, _createObjs),
       this._update(auth, id, _updateObjs),
@@ -86,6 +90,32 @@ export default class UpdateUserService extends Service {
     ]);
 
     return { messages: ['Created'] } satisfies IMessages;
+  }
+
+  /**
+   *
+   * @param groups
+   * @param userId
+   */
+  private async hasAccess(groups: number[], userId: number): Promise<number[]> {
+    const hasGroups = await prisma.userGroupView.findMany({
+      where: {
+        revId: { not: null },
+        userId,
+        groupId: { in: groups },
+      },
+    });
+
+    const exists = hasGroups.map((e) => e.groupId);
+    return await new Promise((resolve, reject) => {
+      const values: number[] = [];
+      groups.forEach((e) => {
+        const docSet = new Set(exists);
+        if (!docSet.has(e)) values.push(e);
+      });
+
+      resolve(values);
+    });
   }
 
   /**
@@ -109,6 +139,8 @@ export default class UpdateUserService extends Service {
               userId: id,
               makedAt: new Date(),
               makedBy: auth.userId,
+              checkedBy: auth.userId,
+              checkedAt: new Date(),
               actionCode: 'APPROVED',
               rowAction: 'CREATE',
               sysAction: 'SUBMIT',
@@ -171,6 +203,8 @@ export default class UpdateUserService extends Service {
               userId: id,
               makedAt: new Date(),
               makedBy: auth.userId,
+              checkedBy: auth.userId,
+              checkedAt: new Date(),
               actionCode: 'APPROVED',
               rowAction: 'UPDATE',
               sysAction: 'SUBMIT',
@@ -233,6 +267,8 @@ export default class UpdateUserService extends Service {
               userId: id,
               makedAt: new Date(),
               makedBy: auth.userId,
+              checkedBy: auth.userId,
+              checkedAt: new Date(),
               actionCode: 'APPROVED',
               rowAction: 'DELETE',
               sysAction: 'SUBMIT',

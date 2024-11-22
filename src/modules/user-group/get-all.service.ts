@@ -26,7 +26,7 @@ export default class GetAllUserGroupService extends Service {
     qs?: IQuerySearch
   ) {
     const orderBy = useOrderBy(qs, {
-      makedAt: { sort: 'desc', nulls: 'last' },
+      makedAt: 'desc',
     });
 
     const totalRows = await prisma.userGroupView.count({

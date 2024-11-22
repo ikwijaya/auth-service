@@ -310,12 +310,17 @@ export default class TypeService extends Service {
           .create({
             data: {
               name: obj.name,
-              groupId: auth.groupId,
+              groupId: obj.groupId,
               mode: obj.mode,
               createdAt: new Date(),
               createdBy: auth.userId,
             },
-            select: { id: true, name: true, mode: true },
+            select: {
+              id: true,
+              name: true,
+              mode: true,
+              group: { select: { name: true } },
+            },
           })
           .catch((e) => {
             throw e;

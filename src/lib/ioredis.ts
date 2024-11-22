@@ -1,6 +1,8 @@
 import IORedis from 'ioredis';
+import dotenv from 'dotenv';
 import logger from './logger';
 
+dotenv.config();
 const redisConnection: IORedis = new IORedis({
   host: process.env.REDIS_HOST,
   port: parseInt(process.env.REDIS_PORT),

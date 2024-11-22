@@ -1,5 +1,7 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayNotEmpty,
+  IsArray,
   IsBoolean,
   IsInt,
   IsOptional,
@@ -36,12 +38,16 @@ export class CreateUserDto {
   @IsString({ message: 'Silakan isi Username' })
   username: string;
 
+  @IsArray()
+  @ArrayNotEmpty({ message: 'User group tidak boleh kosong' })
   @ValidateNested({ message: 'User group tidak di set', each: true })
   @Type(() => UserGroupDto)
   userGroups: UserGroupDto[];
 }
 
 export class UpdateUserDto {
+  @IsArray()
+  @ArrayNotEmpty({ message: 'User group tidak boleh kosong' })
   @ValidateNested({ message: 'User group tidak di set', each: true })
   @Type(() => UserGroupDto)
   userGroups: UserGroupDto[];

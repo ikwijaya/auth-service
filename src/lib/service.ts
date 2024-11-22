@@ -1,5 +1,5 @@
 import { Queue } from 'bullmq';
-import { Prisma } from '@prisma/client';
+import { sqlFindUserGroup } from '@prisma/client/sql';
 import logger from './logger';
 import redisConnection from './ioredis';
 import prisma from '@/lib/prisma';
@@ -42,20 +42,10 @@ abstract class Service {
      * thats means this user has assign to some group before
      * and this user has waiting for new group after
      */
-    const findUserGroup: Array<{ id: number }> = await prisma.$queryRaw`
-      SELECT  a."id"
-      FROM    "UserGroup" as a
-      INNER JOIN (
-        SELECT  MAX(b."checkedAt") as "maxdate", b."userId", b."groupId"
-        FROM    "UserGroup" as b
-        WHERE   b."actionCode" = 'APPROVED' AND b."recordStatus" = 'A'
-        GROUP BY b."userId", b."groupId"
-      ) as ib ON a."userId" = ib."userId" AND a."groupId" = ib."groupId" AND a."checkedAt" = ib."maxdate"
-      WHERE   a."typeId" IN (${Prisma.join(
-        type.map((e) => e.typeId).filter(this.notEmpty)
-      )})
-              AND a."recordStatus" = 'A' AND a."actionCode" = 'APPROVED';
-    `;
+    const typeIds = type.map((e) => e.typeId);
+    const findUserGroup: Array<{ id: number }> = await prisma.$queryRawTyped(
+      sqlFindUserGroup(typeIds.map((e) => e))
+    );
 
     const userGroup = await prisma.userGroup
       .findMany({
@@ -113,18 +103,9 @@ abstract class Service {
      * thats means this user has assign to some group before
      * and this user has waiting for new group after
      */
-    const findUserGroup: Array<{ id: number }> = await prisma.$queryRaw`
-      SELECT  a."id"
-      FROM    "UserGroup" as a
-      INNER JOIN (
-        SELECT  MAX(b."checkedAt") as "maxdate", b."userId", b."groupId"
-        FROM    "UserGroup" as b
-        WHERE   b."actionCode" = 'APPROVED' AND b."recordStatus" = 'A'
-        GROUP BY b."userId", b."groupId"
-      ) as ib ON a."userId" = ib."userId" AND a."groupId" = ib."groupId" AND a."checkedAt" = ib."maxdate"
-      WHERE   a."typeId" IN (${Prisma.join(typeIds)})
-              AND a."recordStatus" = 'A' AND a."actionCode" = 'APPROVED';
-    `;
+    const findUserGroup: Array<{ id: number }> = await prisma.$queryRawTyped(
+      sqlFindUserGroup(typeIds)
+    );
 
     const userGroup = await prisma.userGroup
       .findMany({
