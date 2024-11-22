@@ -20,7 +20,11 @@ export default class ImpersonateController extends Api {
   ) => {
     try {
       const value = await this.service
-        .impersonate(req.userAccount, Number(req.params.group_id))
+        .impersonate(
+          req.userAccount,
+          Number(req.params.group_id),
+          req.params.form_id
+        )
         .catch((e) => {
           throw e;
         });

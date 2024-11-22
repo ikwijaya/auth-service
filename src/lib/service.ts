@@ -229,6 +229,40 @@ abstract class Service {
   }
 
   /**
+   *
+   * @param userPrefix
+   * @returns
+   */
+  public async delRedisUserKeys(userPrefix: string) {
+    if (!process.env.REDIS_HOST) {
+      logger.warn(`<no-redis-defined>`);
+      return null;
+    }
+
+    // Create a pattern for the keys you want to delete (e.g., sid_user1_* for user1)
+    const pattern = `${userPrefix}_*`;
+    let cursor = '0';
+    do {
+      const [nextCursor, keys] = await redisConnection.scan(
+        cursor,
+        'MATCH',
+        pattern,
+        'COUNT',
+        100
+      );
+      cursor = nextCursor;
+
+      if (keys.length > 0) {
+        await Promise.all(
+          keys.map(async (key) => await redisConnection.del(key))
+        );
+      }
+    } while (cursor !== '0');
+
+    return null;
+  }
+
+  /**
    * superadmin is user which is type mode is SUPERADMIN
    * @param auth
    */

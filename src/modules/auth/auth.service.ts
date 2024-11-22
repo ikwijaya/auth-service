@@ -410,11 +410,14 @@ export default class AuthService extends Service {
           },
         });
 
+        await this.delRedisK('sid_' + obj.username);
+        await this.delRedisK('uac_' + obj.username);
         await this.setRedisKV(
           'sid_' + obj.username,
           token,
           convertToSeconds(process.env.JWT_EXPIRE)
         );
+
         const payload: ILogQMes = {
           serviceName: AuthService.name,
           action: 'login',
@@ -567,6 +570,7 @@ export default class AuthService extends Service {
         });
 
       await this.delRedisK('sid_' + user.user.username);
+      await this.delRedisK('uac_' + user.user.username);
       const payload: ILogQMes = {
         serviceName: AuthService.name,
         action: 'logout',

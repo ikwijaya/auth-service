@@ -8,8 +8,8 @@ const router: Router = Router();
 const controller = new Controller();
 
 router.put(
-  '/impersonate/:group_id',
-  rateLimit({ windowMs, limit: 10 }),
+  '/impersonate/:group_id/:form_id',
+  rateLimit({ windowMs, limit: 100 }),
   verifyAccount,
   controller.impersonate
 );

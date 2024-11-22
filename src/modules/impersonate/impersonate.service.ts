@@ -12,6 +12,8 @@ import {
 import environment from '@/lib/environment';
 import logger from '@/lib/logger';
 import { type ILogQMes } from '@/dto/queue.dto';
+import { convertToSeconds } from '@/utils/helper';
+import { AuthValidate } from '@/lib/auth';
 
 export default class ImpersonateService extends Service {
   /**
@@ -20,7 +22,11 @@ export default class ImpersonateService extends Service {
    * @param groupId
    * @returns
    */
-  public async impersonate(auth: IUserAccount, groupId: number) {
+  public async impersonate(
+    auth: IUserAccount,
+    groupId: number,
+    formId: string
+  ) {
     /// find group
     const group = await prisma.group
       .findFirst({ where: { id: groupId } })
@@ -73,9 +79,23 @@ export default class ImpersonateService extends Service {
       { expiresIn: process.env.JWT_EXPIRE }
     );
 
+    await this.delRedisK('sid_' + auth.username);
+    await this.delRedisK('uac_' + auth.username);
     await this.relogin(auth, token).catch((e) => {
       throw e;
     });
+
+    const authValidate = new AuthValidate('10m', token);
+    await this.setRedisKV(
+      'sid_' + auth.username,
+      token,
+      convertToSeconds(process.env.JWT_EXPIRE)
+    );
+    await authValidate
+      .validate(auth.userId, token, formId, groupId, auth.username)
+      .catch((e) => {
+        throw e;
+      });
     const payload: ILogQMes = {
       serviceName: auth.logAction,
       action: 'switch-login',
@@ -233,6 +253,7 @@ export default class ImpersonateService extends Service {
           token,
           type: 'app-cms',
           userId: auth.userId,
+          fcmUrl: auth.fcmUrl,
         },
       });
     });
