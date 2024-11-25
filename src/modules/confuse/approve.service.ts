@@ -33,7 +33,7 @@ export default class ApproveUserGroupService extends Service {
     });
 
     if (!check)
-      return setError(
+      throw setError(
         HttpStatusCode.NotFound,
         'Your request is already executed'
       );
