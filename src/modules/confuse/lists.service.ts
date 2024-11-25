@@ -1,26 +1,26 @@
 import {
-  type IUserAccount,
   type IDataWithPagination,
   type IPagination,
   type IQuerySearch,
+  type IUserAccount,
   type IUserMatrix,
 } from '@/dto/common.dto';
 import createPagination from '@/lib/pagination';
 import { useOrderBy } from '@/lib/parsed-qs';
 import prisma from '@/lib/prisma';
-import Service from '@/lib/service';
 
-export default class GetAllUserGroupService extends Service {
+export default class ListConfuseService {
   /**
    *
+   * @param auth
+   * @param userId
    * @param matrix
    * @param pagination
    * @param qs
    * @returns
    */
-  public async getAll(
+  public async findAll(
     auth: IUserAccount,
-    userId: number,
     matrix: IUserMatrix,
     pagination: IPagination,
     qs?: IQuerySearch
@@ -32,7 +32,8 @@ export default class GetAllUserGroupService extends Service {
     const totalRows = await prisma.userGroupView.count({
       where: {
         revId: { not: null },
-        userId,
+        groupId: auth.groupId,
+        actionCode: 'WAITING',
         makedAt: {
           gte: qs?.startDate ? new Date(qs.startDate) : undefined,
           lt: qs?.endDate ? new Date(qs.endDate) : undefined,
@@ -62,7 +63,8 @@ export default class GetAllUserGroupService extends Service {
         skip: _p.skip,
         where: {
           revId: { not: null },
-          userId,
+          groupId: auth.groupId,
+          actionCode: 'WAITING',
           makedAt: {
             gte: qs?.startDate ? new Date(qs.startDate) : undefined,
             lt: qs?.endDate ? new Date(qs.endDate) : undefined,
@@ -98,8 +100,8 @@ export default class GetAllUserGroupService extends Service {
     return {
       items: items.map((e) => ({
         ...e,
-        is_delete:
-          matrix.is_delete &&
+        is_update:
+          matrix.is_create &&
           e.userId !== auth.userId &&
           e.actionCode !== 'WAITING',
       })),

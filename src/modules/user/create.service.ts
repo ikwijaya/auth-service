@@ -32,6 +32,20 @@ export default class CreateUserService extends Service {
         'Username is already exist ' + (user.fullname ?? user.username)
       );
 
+    /// only superadmin can override user to multi group
+    const _a = obj.userGroups.map((e) => e.groupId);
+    const _b = [...new Set(_a)];
+
+    if (!this.isSuperadmin(auth)) {
+      const validation =
+        auth.groupId && _b.length === 1 && _b.includes(auth.groupId);
+      if (!validation)
+        throw setError(
+          HttpStatusCode.BadRequest,
+          'Your selected group maybe not your group.'
+        );
+    }
+
     const validGroups = await this.validGroups(
       obj.userGroups.map((e) => e.groupId)
     );

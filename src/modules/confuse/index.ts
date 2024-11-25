@@ -9,8 +9,15 @@ import { ConsentDto, RefuseDto } from '@/dto/confuse';
 const router: Router = Router();
 const controller = new Controller();
 
+router.get(
+  '/confuse/users',
+  verifyAccount,
+  MatrixValidator.validate(ROLE_ACTION.read),
+  controller.findAll
+);
+
 router.post(
-  '/user-consent',
+  '/confuse/consent',
   verifyAccount,
   MatrixValidator.validate(ROLE_ACTION.create),
   RequestValidator.validate(ConsentDto),
@@ -18,7 +25,7 @@ router.post(
 );
 
 router.post(
-  '/user-refuse',
+  '/confuse/refuse',
   verifyAccount,
   MatrixValidator.validate(ROLE_ACTION.create),
   RequestValidator.validate(RefuseDto),

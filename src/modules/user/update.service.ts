@@ -21,6 +21,20 @@ export default class UpdateUserService extends Service {
 
     if (!user) throw setError(HttpStatusCode.NotFound, 'User not found');
 
+    /// only superadmin can override user to multi group
+    const _a = obj.userGroups.map((e) => e.groupId);
+    const _b = [...new Set(_a)];
+
+    if (!this.isSuperadmin(auth)) {
+      const validation =
+        auth.groupId && _b.length === 1 && _b.includes(auth.groupId);
+      if (!validation)
+        throw setError(
+          HttpStatusCode.BadRequest,
+          'Your selected group maybe not your group.'
+        );
+    }
+
     const compareWaiting = await this.compareWaiting(
       id,
       obj.userGroups.map((e) => e.groupId)
@@ -89,7 +103,12 @@ export default class UpdateUserService extends Service {
       this._delete(auth, id, _deleteObjs),
     ]);
 
-    return { messages: ['Created'] } satisfies IMessages;
+    const message: string =
+      hasAccess.length > 0
+        ? 'Created and some users has been accessed in some groups'
+        : 'Created';
+
+    return { messages: [message] } satisfies IMessages;
   }
 
   /**
@@ -149,6 +168,7 @@ export default class UpdateUserService extends Service {
               .filter((e) => e.groupId === auth.groupId)
               .map((e) => ({
                 ...e,
+                mainId: main.id,
                 userId: id,
                 makedAt: new Date(),
                 makedBy: auth.userId,
@@ -398,7 +418,8 @@ export default class UpdateUserService extends Service {
       where: { id: { in: groups }, recordStatus: 'A' },
     });
 
-    return valid.length === groups.length;
+    const _groups = [...new Set(groups)];
+    return valid.length === _groups.length;
   }
 
   /**
