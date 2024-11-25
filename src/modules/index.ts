@@ -10,6 +10,7 @@ import Impersonate from './impersonate/impersonate.route';
 import Log from './log/log.route';
 import User from './user/user.route';
 import UserGroup from './user-group/user-group.route';
+import Confuse from './confuse';
 
 const router: Router = Router();
 router.use(Auth);
@@ -23,5 +24,6 @@ router.use(Impersonate);
 router.use(Log);
 router.use(User);
 router.use(UserGroup);
+router.use(Confuse);
 
 export default router;
