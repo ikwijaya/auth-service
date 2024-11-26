@@ -130,13 +130,14 @@ export const verifyAccount = async (
                   req.socket.remoteAddress;
                 const userAgent: string | undefined = req.headers['user-agent'];
 
-                payload.token = req.jwtToken;
+                payload.token = token;
                 payload.ipAddress = ipAddress;
                 payload.device = userAgent;
                 payload.logAction = req.url;
 
                 req.userAccount = payload;
                 req.jwtVerify = verify;
+                req.jwtToken = token;
                 next();
               }
             }

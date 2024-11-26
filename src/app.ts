@@ -40,7 +40,7 @@ class App {
     this.express.disable('x-powered-by');
 
     console.log(initText);
-    if (environment.isDev()) this.express.use(cors());
+    if (environment.isTest()) this.express.use(cors());
     this.setMiddlewares();
     this.setRoutes();
     this.setErrorHandler();
