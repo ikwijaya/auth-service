@@ -142,6 +142,7 @@ export default class AuthService extends Service {
 
       await prisma
         .$transaction([
+          prisma.loginHistory.create({ data: { username, status: false } }),
           prisma.user.update({
             where: { id: obj.userId },
             data: {
@@ -184,6 +185,7 @@ export default class AuthService extends Service {
     else {
       await prisma
         .$transaction([
+          prisma.loginHistory.create({ data: { username, status: false } }),
           prisma.user.update({
             where: { id: obj.userId },
             data: {
@@ -351,6 +353,9 @@ export default class AuthService extends Service {
 
     await prisma
       .$transaction(async (tx) => {
+        await tx.loginHistory.create({
+          data: { username: obj.username, status: true },
+        });
         await tx.user
           .update({
             where: { id: user.id },

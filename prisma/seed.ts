@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import logger from '../src/lib/logger';
 import formJson from './json/form.json';
+import optionJson from './json/options.json';
 
 interface IGroup {
   id: number;
@@ -120,6 +121,9 @@ const privilege: IPrivilegeType[] = [
 const prisma = new PrismaClient();
 async function seed(): Promise<void> {
   await prisma.$transaction(async (tx) => {
+    await tx.options.createMany({
+      data: optionJson.map((e) => ({ ...e, createdAt: new Date() })),
+    });
     await tx.user.createMany({ data: user });
     await tx.ldap.create({ data: ldap });
     await tx.group.create({ data: { ...group } });
@@ -189,9 +193,7 @@ async function seed(): Promise<void> {
 
     const matrix: IMatrixMenu[] = forms.map((e) => ({
       id: e.id,
-      label: e.parent
-        ? `${e.parent.label as string} > ${e.label as string}`
-        : e.label,
+      label: e.parent ? `${e.parent.label} > ${e.label}` : e.label,
       isReadOnly: e.isReadOnly,
       roles: [
         { roleAction: 'C', roleValue: true, roleName: 'CREATE' },

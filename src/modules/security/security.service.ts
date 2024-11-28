@@ -11,7 +11,23 @@ export default class SecurityService extends Service {
    * @returns
    */
   public async me(auth: IUserAccount) {
-    return auth;
+    const failed = await prisma.loginHistory.findFirst({
+      select: { createdAt: true },
+      where: { status: false, username: auth.username },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    const success = await prisma.loginHistory.findFirst({
+      select: { createdAt: true },
+      where: { status: false, username: auth.username },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return { ...auth, success, failed };
   }
 
   /**

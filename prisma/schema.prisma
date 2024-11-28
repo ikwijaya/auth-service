@@ -10,45 +10,45 @@ datasource db {
 }
 
 model User {
-  id               Int         @id @default(autoincrement())
+  id               Int            @id @default(autoincrement())
   ldapId           Int?
   ldapDn           String?
-  attempt          Int         @default(0)
-  username         String      @unique
+  attempt          Int            @default(0)
+  username         String         @unique
   fullname         String?
   jsonLdap         Json?
   email            String?
-  createdAt        DateTime    @default(now())
+  createdAt        DateTime       @default(now())
   createdBy        Int?
-  updatedAt        DateTime?   @updatedAt
+  updatedAt        DateTime?      @updatedAt
   updatedBy        Int?
-  recordStatus     String      @default("A")
-  AccessCreate     Access[]    @relation("createdUser")
-  AccessUpdate     Access[]    @relation("updatedUser")
-  FormsCreate      Form[]      @relation("createdUser")
-  FormsUpdate      Form[]      @relation("updatedUser")
-  FormsGroupCreate FormGroup[] @relation("createdUser")
-  FormsGroupUpdate FormGroup[] @relation("updatedUser")
-  GroupsCreate     Group[]     @relation("createdUser")
-  GroupsUpdate     Group[]     @relation("updatedUser")
-  RolesCreate      Role[]      @relation("createdUser")
-  RolesUpdate      Role[]      @relation("updatedUser")
+  recordStatus     String         @default("A")
+  AccessCreate     Access[]       @relation("createdUser")
+  AccessUpdate     Access[]       @relation("updatedUser")
+  FormsCreate      Form[]         @relation("createdUser")
+  FormsUpdate      Form[]         @relation("updatedUser")
+  FormsGroupCreate FormGroup[]    @relation("createdUser")
+  FormsGroupUpdate FormGroup[]    @relation("updatedUser")
+  GroupsCreate     Group[]        @relation("createdUser")
+  GroupsUpdate     Group[]        @relation("updatedUser")
+  RolesCreate      Role[]         @relation("createdUser")
+  RolesUpdate      Role[]         @relation("updatedUser")
   Roles            Role[]
-  SessionsCreate   Session[]   @relation("createdUser")
-  SessionsUpdate   Session[]   @relation("updatedUser")
+  SessionsCreate   Session[]      @relation("createdUser")
+  SessionsUpdate   Session[]      @relation("updatedUser")
   Sessions         Session[]
-  TypesCreate      Type[]      @relation("createdUser")
-  TypesUpdate      Type[]      @relation("updatedUser")
-  createdUser      User?       @relation("createdUser", fields: [createdBy], references: [id])
-  UserCreate       User[]      @relation("createdUser")
-  ldap             Ldap?       @relation(fields: [ldapId], references: [id])
-  updatedUser      User?       @relation("updatedUser", fields: [updatedBy], references: [id])
-  UsersUpdate      User[]      @relation("updatedUser")
-  UserGroupChecker UserGroup[] @relation("checkedUser")
-  UserGroupMaker   UserGroup[] @relation("makedUser")
+  TypesCreate      Type[]         @relation("createdUser")
+  TypesUpdate      Type[]         @relation("updatedUser")
+  createdUser      User?          @relation("createdUser", fields: [createdBy], references: [id])
+  UserCreate       User[]         @relation("createdUser")
+  ldap             Ldap?          @relation(fields: [ldapId], references: [id])
+  updatedUser      User?          @relation("updatedUser", fields: [updatedBy], references: [id])
+  UsersUpdate      User[]         @relation("updatedUser")
+  UserGroupChecker UserGroup[]    @relation("checkedUser")
+  UserGroupMaker   UserGroup[]    @relation("makedUser")
   UserGroup        UserGroup[]
-  WizardsCreate    Wizard[]    @relation("createdUser")
-  WizardsUpdate    Wizard[]    @relation("updatedUser")
+  WizardsCreate    Wizard[]       @relation("createdUser")
+  WizardsUpdate    Wizard[]       @relation("updatedUser")
 }
 
 model MainUserGroup {
@@ -250,12 +250,19 @@ model Session {
   @@index([recordStatus], map: "recordStatusIndex")
 }
 
+model LoginHistory {
+  id        Int      @id @default(autoincrement())
+  username  String
+  status    Boolean
+  createdAt DateTime @default(now())
+}
+
 model Options {
   id           Int      @id @default(autoincrement())
   flag         String
   key          String
   value        String
-  changelog    String
+  changelog    String?
   createdAt    DateTime @default(now())
   recordStatus String   @default("A")
 }
