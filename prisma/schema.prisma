@@ -194,8 +194,8 @@ model Role {
 
 model Form {
   id           Int         @id @default(autoincrement())
-  name         String
-  url          String?
+  label        String
+  path         String?
   icon         String?     @default("mdi-snow")
   color        String?     @default("white")
   sort         Int         @default(0)
@@ -209,7 +209,7 @@ model Form {
   Access       Access[]
   createdUser  User        @relation("createdUser", fields: [createdBy], references: [id])
   parent       Form?       @relation("children", fields: [parentId], references: [id])
-  childs       Form[]      @relation("children")
+  child        Form[]      @relation("children")
   updatedUser  User?       @relation("updatedUser", fields: [updatedBy], references: [id])
   FormsGroup   FormGroup[]
   Roles        Role[]

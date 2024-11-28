@@ -160,12 +160,12 @@ export default class TypeService extends Service {
               form: {
                 select: {
                   id: true,
-                  name: true,
-                  url: true,
+                  label: true,
+                  path: true,
                   parentId: true,
                   parent: {
                     select: {
-                      name: true,
+                      label: true,
                       id: true,
                     },
                   },
@@ -194,14 +194,14 @@ export default class TypeService extends Service {
     interface IMenu {
       roleValue: boolean;
       id: number;
-      name: string;
-      parent: { id: number; name: string } | null | undefined;
+      label: string;
+      parent: { id: number; label: string } | null | undefined;
     }
     function flattenMenu(arr: IMenu[]) {
       const result: string[] = [];
       function recursiveFlatten(item: IMenu) {
-        if (item.parent) result.push(`${item.parent.name} > ${item.name}`);
-        else result.push(item.name);
+        if (item.parent) result.push(`${item.parent.label} > ${item.label}`);
+        else result.push(item.label);
 
         // Recursively flatten child items
         arr.forEach((child) => {
@@ -227,7 +227,7 @@ export default class TypeService extends Service {
         e.Access.map((a) => ({
           roleValue: a.roleValue,
           id: a.form.id,
-          name: a.form.name,
+          label: a.form.label,
           parent: a.form.parent,
         }))
       ),
@@ -339,7 +339,7 @@ export default class TypeService extends Service {
           .findMany({
             select: {
               id: true,
-              name: true,
+              label: true,
               sort: true,
               isReadOnly: true,
               parentId: true,
@@ -357,7 +357,7 @@ export default class TypeService extends Service {
 
         const parentForms: IMatrixMenu[] = parents.map((e) => ({
           id: e.id,
-          name: e.name,
+          label: e.label,
           sort: e.sort,
           isReadOnly: e.isReadOnly,
           parentId: e.parentId,

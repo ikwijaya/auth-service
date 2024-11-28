@@ -75,14 +75,14 @@ export default class AccessService {
         orderBy: [{ sort: 'asc' }],
         select: {
           id: true,
-          name: true,
+          label: true,
           isReadOnly: true,
           parentId: true,
-          url: true,
+          path: true,
           sort: true,
           parent: {
             select: {
-              name: true,
+              label: true,
             },
           },
         },
@@ -97,14 +97,16 @@ export default class AccessService {
     const matrix: IMatrixMenu[] = forms.map((e) => ({
       id: e.id,
       sort: e.sort,
-      name: e.parent ? `${e.parent.name} > ${e.name}` : e.name,
+      label: e.parent
+        ? (e.parent.label as string) + ' > ' + (e.label as string)
+        : e.label,
       isReadOnly: e.isReadOnly,
       parentId: e.parentId,
       roles: [
         { roleAction: 'C', roleValue: false, roleName: 'CREATE' },
         {
           roleAction: 'R',
-          roleValue: e.url?.toLowerCase() === '/dashboard',
+          roleValue: e.path?.toLowerCase() === '/dashboard',
           roleName: 'READ',
         },
         { roleAction: 'U', roleValue: false, roleName: 'UPDATE' },
@@ -133,13 +135,13 @@ export default class AccessService {
         ],
         select: {
           id: true,
-          name: true,
+          label: true,
           sort: true,
           isReadOnly: true,
           parentId: true,
           parent: {
             select: {
-              name: true,
+              label: true,
               sort: true,
             },
           },
@@ -164,7 +166,9 @@ export default class AccessService {
         id: e.id,
         parentId: e.parentId,
         sort: e.sort,
-        name: e.parentId ? (e.parent?.name ?? '') + ' > ' + e.name : e.name,
+        label: e.parent
+          ? (e.parent.label as string) + ' > ' + (e.label as string)
+          : e.label,
         isReadOnly: e.isReadOnly,
         roles: e.Access.map((i) => ({
           roleAction: i.roleAction,

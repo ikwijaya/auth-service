@@ -24,7 +24,7 @@ export class IMatrixMenu {
   id: number;
 
   @IsString()
-  name: string;
+  label: string;
 
   @IsNumber()
   @IsOptional()
