@@ -138,17 +138,15 @@ export default class ImpersonateService extends Service {
      * thats means this user has assign to some group before
      * and this user has waiting for new group after
      */
-    const findUserGroup: Array<{ id: number }> = await prisma.$queryRaw`
-            SELECT  a."id"
-            FROM    "UserGroup" as a
-            INNER JOIN (
-            SELECT  MAX(b."checkedAt") as "maxdate", b."userId", b."groupId"
-            FROM    "UserGroup" as b
-            WHERE   b."actionCode" = 'APPROVED' AND b."recordStatus" = 'A'
-            GROUP BY b."userId", b."groupId"
-            ) as ib ON a."userId" = ib."userId" AND a."groupId" = ib."groupId" AND a."checkedAt" = ib."maxdate"
-            WHERE   a."recordStatus" = 'A' AND a."actionCode" = 'APPROVED';
-        `;
+    const findUserGroup: Array<{ id: number }> =
+      await prisma.userGroup.findMany({
+        select: { id: true },
+        where: {
+          userId: auth.userId,
+          actionCode: 'APPROVED',
+          groupId: { not: auth.groupId },
+        },
+      });
 
     const userGroup = await prisma.userGroup
       .findMany({
@@ -168,6 +166,8 @@ export default class ImpersonateService extends Service {
       .catch((e) => {
         throw e;
       });
+
+    console.log(userGroup);
 
     const gIds = userGroup.map((e) => e.groupId).filter(this.notEmpty);
     const groups = await prisma.group

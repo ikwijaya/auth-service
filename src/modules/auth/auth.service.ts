@@ -498,17 +498,14 @@ export default class AuthService extends Service {
      * thats means this user has assign to some group before
      * and this user has waiting for new group after
      */
-    const findUserGroup: Array<{ id: number }> = await prisma.$queryRaw`
-      SELECT  a."id"
-      FROM    "UserGroup" as a
-      INNER JOIN (
-        SELECT  MAX(b."checkedAt") as "maxdate", b."userId", b."groupId"
-        FROM    "UserGroup" as b
-        WHERE   b."actionCode" = 'APPROVED' AND b."recordStatus" = 'A'
-        GROUP BY b."userId", b."groupId"
-      ) as ib ON a."userId" = ib."userId" AND a."groupId" = ib."groupId" AND a."checkedAt" = ib."maxdate"
-      WHERE   a."recordStatus" = 'A' AND a."actionCode" = 'APPROVED';
-    `;
+    const findUserGroup: Array<{ id: number }> =
+      await prisma.userGroup.findMany({
+        select: { id: true },
+        where: {
+          user: { username },
+          actionCode: 'APPROVED',
+        },
+      });
 
     const userGroup = await prisma.userGroup
       .findMany({
