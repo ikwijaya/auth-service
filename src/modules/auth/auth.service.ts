@@ -50,7 +50,9 @@ export default class AuthService extends Service {
     username: string,
     password: string,
     ldap: Ldap,
-    attempt: number
+    attempt: number,
+    ipAddress?: string,
+    device?: string
   ) {
     const verify = await this.verifyLdap(username, ldap);
     if (!verify.valid)
@@ -142,7 +144,9 @@ export default class AuthService extends Service {
 
       await prisma
         .$transaction([
-          prisma.loginHistory.create({ data: { username, status: false } }),
+          prisma.loginHistory.create({
+            data: { username, status: false, ipAddress, device },
+          }),
           prisma.user.update({
             where: { id: obj.userId },
             data: {
@@ -185,7 +189,9 @@ export default class AuthService extends Service {
     else {
       await prisma
         .$transaction([
-          prisma.loginHistory.create({ data: { username, status: false } }),
+          prisma.loginHistory.create({
+            data: { username, status: false, ipAddress, device },
+          }),
           prisma.user.update({
             where: { id: obj.userId },
             data: {
@@ -354,7 +360,12 @@ export default class AuthService extends Service {
     await prisma
       .$transaction(async (tx) => {
         await tx.loginHistory.create({
-          data: { username: obj.username, status: true },
+          data: {
+            username: obj.username,
+            status: true,
+            device: obj.device,
+            ipAddress: obj.ipAddress,
+          },
         });
         await tx.user
           .update({

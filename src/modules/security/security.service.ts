@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import prisma from '@/lib/prisma';
 import { type PageValidateDto } from '@/dto/user.dto';
 import { type IUserAccount } from '@/dto/common.dto';
@@ -27,7 +28,33 @@ export default class SecurityService extends Service {
       },
     });
 
-    return { ...auth, success, failed };
+    const session = await prisma.session.findMany({
+      where: { userId: auth.userId },
+    });
+
+    const history = await prisma.loginHistory.findMany({
+      select: { device: true, ipAddress: true, status: true, createdAt: true },
+      where: { username: auth.username },
+      take: 5,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    let i = 1;
+    return {
+      ...auth,
+      success,
+      failed,
+      history: history.map((e) => ({
+        number: i++,
+        ...e,
+        createdAt: dayjs(e.createdAt).format('DD MMM YYYY HH:mm:ss'),
+        status: e.status ? 'sukses login' : 'gagal login',
+      })),
+      session: {
+        totalCount: session.length,
+        totalTime: 0,
+      },
+    };
   }
 
   /**
