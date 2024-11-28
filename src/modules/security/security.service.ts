@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { type PageValidateDto } from '@/dto/user.dto';
 import { type IUserAccount } from '@/dto/common.dto';
 import Service from '@/lib/service';
+import logger from '@/lib/logger';
 
 export default class SecurityService extends Service {
   /**
@@ -42,16 +43,16 @@ export default class SecurityService extends Service {
       .findMany({
         select: {
           id: true,
-          name: true,
-          url: true,
+          label: true,
+          path: true,
           color: true,
           icon: true,
           sort: true,
-          childs: {
+          child: {
             select: {
               id: true,
-              name: true,
-              url: true,
+              label: true,
+              path: true,
               color: true,
               icon: true,
               sort: true,
@@ -89,19 +90,19 @@ export default class SecurityService extends Service {
    */
   public async pageValidate(obj: PageValidateDto): Promise<{
     id: number;
-    name: string;
-    url: string | null;
+    label: string;
+    path: string | null;
   } | null> {
     const url = obj.path;
     const menu = await prisma.form
       .findFirst({
         select: {
           id: true,
-          name: true,
-          url: true,
+          label: true,
+          path: true,
         },
         where: {
-          url: { contains: url },
+          path: { contains: url },
           recordStatus: 'A',
         },
       })
@@ -109,6 +110,7 @@ export default class SecurityService extends Service {
         throw e;
       });
 
+    logger.info('path: ' + url);
     if (menu) return menu;
     else {
       const options = await prisma.options
@@ -121,7 +123,7 @@ export default class SecurityService extends Service {
         });
 
       if (!options) return null;
-      else return { id: 1, name: options.key, url: options.value };
+      else return { id: 1, label: options.key, path: options.value };
     }
   }
 }

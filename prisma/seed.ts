@@ -37,7 +37,7 @@ interface ILdap {
 
 interface IMatrixMenu {
   id: number;
-  name: string;
+  label: string;
   isReadOnly: boolean;
   roles: IRole[];
 }
@@ -120,7 +120,7 @@ const privilege: IPrivilegeType[] = [
 const prisma = new PrismaClient();
 async function seed(): Promise<void> {
   await prisma.$transaction(async (tx) => {
-    await prisma.user.createMany({ data: user });
+    await tx.user.createMany({ data: user });
     await tx.ldap.create({ data: ldap });
     await tx.group.create({ data: { ...group } });
     await tx.type.createMany({ data: privilege });
@@ -134,6 +134,23 @@ async function seed(): Promise<void> {
         createdAt: new Date(),
         recordStatus: 'A',
       })),
+    });
+
+    // register superadmin into group
+    const main = await tx.mainUserGroup.create({
+      data: { createdAt: new Date() },
+    });
+
+    await tx.userGroup.create({
+      data: {
+        mainId: main.id,
+        userId: 1,
+        groupId: 1,
+        typeId: 1,
+        makedBy: 1,
+        makedAt: new Date(),
+        actionCode: 'APPROVED',
+      },
     });
   });
 
@@ -156,11 +173,11 @@ async function seed(): Promise<void> {
         orderBy: [{ sort: 'asc' }],
         select: {
           id: true,
-          name: true,
+          label: true,
           isReadOnly: true,
           parent: {
             select: {
-              name: true,
+              label: true,
             },
           },
         },
@@ -172,7 +189,9 @@ async function seed(): Promise<void> {
 
     const matrix: IMatrixMenu[] = forms.map((e) => ({
       id: e.id,
-      name: e.parent ? `${e.parent.name} > ${e.name}` : e.name,
+      label: e.parent
+        ? `${e.parent.label as string} > ${e.label as string}`
+        : e.label,
       isReadOnly: e.isReadOnly,
       roles: [
         { roleAction: 'C', roleValue: true, roleName: 'CREATE' },
