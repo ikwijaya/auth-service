@@ -24,23 +24,29 @@ export default class GetAllUserService extends Service {
     pagination: IPagination,
     qs?: IQuerySearch
   ) {
-    /// filtering custom, how to define it
-    // const userGroupView = await prisma.userGroupView.findMany({
-    //   select: { userId: true },
-    //   where: { groupId: auth.groupId },
-    // });
     const orderBy = useOrderBy(qs, {
       updatedAt: { sort: 'desc', nulls: 'last' },
     });
 
     const totalRows = await prisma.user.count({
       where: {
-        username: { contains: qs?.keyword, mode: 'insensitive' },
         recordStatus: 'A',
-        createdAt: {
-          gte: qs?.startDate ? new Date(qs.startDate) : undefined,
-          lt: qs?.endDate ? new Date(qs.endDate) : undefined,
-        },
+        username: { not: 'app.system' },
+        AND: [
+          {
+            OR: [
+              { username: { contains: qs?.keyword } },
+              { fullname: { contains: qs?.keyword } },
+              { email: { contains: qs?.keyword } },
+            ],
+          },
+          {
+            createdAt: {
+              gte: qs?.startDate ? new Date(qs.startDate) : undefined,
+              lt: qs?.endDate ? new Date(qs.endDate) : undefined,
+            },
+          },
+        ],
       },
     });
 
@@ -65,12 +71,23 @@ export default class GetAllUserService extends Service {
         take: _p.take,
         skip: _p.skip,
         where: {
-          username: { contains: qs?.keyword, mode: 'insensitive' },
           recordStatus: 'A',
-          createdAt: {
-            gte: qs?.startDate ? new Date(qs.startDate) : undefined,
-            lt: qs?.endDate ? new Date(qs.endDate) : undefined,
-          },
+          username: { not: 'app.system' },
+          AND: [
+            {
+              OR: [
+                { username: { contains: qs?.keyword } },
+                { fullname: { contains: qs?.keyword } },
+                { email: { contains: qs?.keyword } },
+              ],
+            },
+            {
+              createdAt: {
+                gte: qs?.startDate ? new Date(qs.startDate) : undefined,
+                lt: qs?.endDate ? new Date(qs.endDate) : undefined,
+              },
+            },
+          ],
         },
         select: {
           id: true,

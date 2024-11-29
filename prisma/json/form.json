@@ -9,26 +9,72 @@
   },
   {
     "id": 2,
-    "label": "Group Management",
-    "path": "/main/group",
+    "label": "Security Manager",
+    "path": null,
     "sort": 2,
-    "isReadOnly": false,
+    "isReadOnly": true,
     "icon": "flaticon-user-3"
   },
   {
     "id": 3,
-    "label": "User Management",
-    "path": "/main/user",
-    "sort": 3,
+    "label": "My Groups",
+    "path": "/main/group/list",
+    "sort": 1,
     "isReadOnly": false,
+    "parentId": 2,
     "icon": "flaticon-user-3"
   },
   {
     "id": 4,
-    "label": "Role Management",
-    "path": "/main/role",
-    "sort": 4,
+    "label": "User Manager",
+    "path": null,
+    "sort": 3,
+    "isReadOnly": true,
+    "icon": "flaticon-user-3"
+  },
+  {
+    "id": 5,
+    "label": "My Users",
+    "path": "/main/user/list",
+    "sort": 1,
     "isReadOnly": false,
+    "parentId": 4,
+    "icon": "flaticon-user-3"
+  },
+  {
+    "id": 6,
+    "label": "My Approvals",
+    "path": "/main/user/approval",
+    "sort": 2,
+    "isReadOnly": false,
+    "parentId": 4,
+    "icon": "flaticon-user-3"
+  },
+
+  {
+    "id": 7,
+    "label": "Document Manager",
+    "path": null,
+    "sort": 4,
+    "isReadOnly": true,
+    "icon": "flaticon-user-3"
+  },
+  {
+    "id": 8,
+    "label": "My Documents",
+    "path": "/main/document/list",
+    "sort": 1,
+    "isReadOnly": false,
+    "parentId": 7,
+    "icon": "flaticon-user-3"
+  },
+  {
+    "id": 9,
+    "label": "My Approvals",
+    "path": "/main/document/approval",
+    "sort": 2,
+    "isReadOnly": false,
+    "parentId": 7,
     "icon": "flaticon-user-3"
   }
 ]

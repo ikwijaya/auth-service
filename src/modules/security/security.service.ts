@@ -144,7 +144,6 @@ export default class SecurityService extends Service {
           path: true,
         },
         where: {
-          isReadOnly: false,
           recordStatus: 'A',
           path: { not: null },
         },

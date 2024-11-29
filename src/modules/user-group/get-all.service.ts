@@ -33,10 +33,23 @@ export default class GetAllUserGroupService extends Service {
       where: {
         revId: { not: null },
         userId,
-        makedAt: {
-          gte: qs?.startDate ? new Date(qs.startDate) : undefined,
-          lt: qs?.endDate ? new Date(qs.endDate) : undefined,
-        },
+        AND: [
+          {
+            OR: [
+              { fullName: { contains: qs?.keyword } },
+              { typeName: { contains: qs?.keyword } },
+              { groupName: { contains: qs?.keyword } },
+              { makedName: { contains: qs?.keyword } },
+              { checkedName: { contains: qs?.keyword } },
+            ],
+          },
+          {
+            makedAt: {
+              gte: qs?.startDate ? new Date(qs.startDate) : undefined,
+              lt: qs?.endDate ? new Date(qs.endDate) : undefined,
+            },
+          },
+        ],
       },
     });
 
@@ -63,10 +76,23 @@ export default class GetAllUserGroupService extends Service {
         where: {
           revId: { not: null },
           userId,
-          makedAt: {
-            gte: qs?.startDate ? new Date(qs.startDate) : undefined,
-            lt: qs?.endDate ? new Date(qs.endDate) : undefined,
-          },
+          AND: [
+            {
+              OR: [
+                { fullName: { contains: qs?.keyword } },
+                { typeName: { contains: qs?.keyword } },
+                { groupName: { contains: qs?.keyword } },
+                { makedName: { contains: qs?.keyword } },
+                { checkedName: { contains: qs?.keyword } },
+              ],
+            },
+            {
+              makedAt: {
+                gte: qs?.startDate ? new Date(qs.startDate) : undefined,
+                lt: qs?.endDate ? new Date(qs.endDate) : undefined,
+              },
+            },
+          ],
         },
         select: {
           id: true,
