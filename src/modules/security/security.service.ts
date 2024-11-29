@@ -3,7 +3,6 @@ import prisma from '@/lib/prisma';
 import { type PageValidateDto } from '@/dto/user.dto';
 import { type IUserAccount } from '@/dto/common.dto';
 import Service from '@/lib/service';
-import logger from '@/lib/logger';
 
 export default class SecurityService extends Service {
   /**
@@ -138,23 +137,24 @@ export default class SecurityService extends Service {
   } | null> {
     const url = obj.path;
     const menu = await prisma.form
-      .findFirst({
+      .findMany({
         select: {
           id: true,
           label: true,
           path: true,
         },
         where: {
-          path: { contains: url },
+          isReadOnly: false,
           recordStatus: 'A',
+          path: { not: null },
         },
       })
       .catch((e) => {
         throw e;
       });
 
-    logger.info('path: ' + url);
-    if (menu) return menu;
+    const isMatch = menu.find((item) => item.path && url.startsWith(item.path));
+    if (isMatch) return isMatch;
     else {
       const options = await prisma.options
         .findFirst({
@@ -166,6 +166,7 @@ export default class SecurityService extends Service {
         });
 
       if (!options) return null;
+      // will me fixing later, as soon as possible
       else return { id: 1, label: options.key, path: options.value };
     }
   }
