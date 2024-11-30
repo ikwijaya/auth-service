@@ -6,7 +6,11 @@ import { type Entry, Client } from 'ldapts';
 import prisma from '@/lib/prisma';
 import { setError, type IApiError } from '@/lib/errors';
 import { type LoginResDto, type LoginDto } from '@/dto/auth.dto';
-import { type IJwtVerify, type IMessages } from '@/dto/common.dto';
+import {
+  type IUserAccount,
+  type IJwtVerify,
+  type IMessages,
+} from '@/dto/common.dto';
 import { aesCbcDecrypt } from '@/lib/security';
 import Service from '@/lib/service';
 import {
@@ -543,12 +547,18 @@ export default class AuthService extends Service {
 
   /**
    *
+   * @param auth
    * @param token
+   * @returns
    */
-  public async logout(token: string): Promise<IApiError | IMessages> {
+  public async logout(
+    auth: IUserAccount,
+    token: string
+  ): Promise<IApiError | IMessages> {
     const user = await prisma.session
       .findFirst({
         select: {
+          id: true,
           userId: true,
           user: {
             select: {
@@ -558,7 +568,7 @@ export default class AuthService extends Service {
             },
           },
         },
-        where: { token, recordStatus: 'A' },
+        where: { token, recordStatus: 'A', userId: auth.userId },
       })
       .catch((e) => {
         throw e;
@@ -575,7 +585,7 @@ export default class AuthService extends Service {
               updatedAt: new Date(),
               updatedBy: user.userId,
             },
-            where: { token, userId: user.userId },
+            where: { token, id: user.id },
           }),
         ])
         .catch((e) => {
@@ -595,7 +605,7 @@ export default class AuthService extends Service {
       };
 
       void this.addLog([{ flag: `${AuthService.name}`, payload }]);
-      return { messages: [] } satisfies IMessages;
+      return { messages: [LOGOUT_ALREADY] } satisfies IMessages;
     }
   }
 

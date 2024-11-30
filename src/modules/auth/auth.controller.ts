@@ -73,9 +73,11 @@ export default class AuthController extends Api {
     next: NextFunction
   ) => {
     try {
-      const value = await this.authService.logout(req.jwtToken).catch((e) => {
-        throw e;
-      });
+      const value = await this.authService
+        .logout(req.userAccount, req.jwtToken)
+        .catch((e) => {
+          throw e;
+        });
       this.send(res, value, HttpStatusCode.Ok);
     } catch (error) {
       next(error);
