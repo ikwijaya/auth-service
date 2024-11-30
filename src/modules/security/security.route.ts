@@ -3,8 +3,9 @@ import Controller from './security.controller';
 import { verifyAccount } from '@/middlewares/auth';
 import RequestValidator from '@/middlewares/request-validator';
 import { PageValidateDto } from '@/dto/user.dto';
-import { ROLE_USER } from '@/enums/role.enum';
+import { ROLE_ACTION, ROLE_USER } from '@/enums/role.enum';
 import PrivilegeValidator from '@/middlewares/privilege-validator';
+import MatrixValidator from '@/middlewares/matrix-validator';
 
 const router: Router = Router();
 const controller = new Controller();
@@ -19,6 +20,7 @@ router.get('/security/menu', verifyAccount, controller.menu);
 router.get(
   '/security/jwt',
   verifyAccount,
+  MatrixValidator.validate(ROLE_ACTION.read),
   PrivilegeValidator.validate([ROLE_USER.SUPERADMIN]),
   controller.jwtCommunicator
 );

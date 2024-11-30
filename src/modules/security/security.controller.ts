@@ -118,6 +118,7 @@ export default class SecurityController extends Api {
         userMatrix: req.userMatrix,
         ...jwtVerify,
       };
+
       const value = Jwt.sign(jwtCommunicator, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRE,
       });
