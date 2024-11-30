@@ -19,7 +19,10 @@ export const verifyTimestamp = async (
   const timestamp = headers.timestamp;
   const format = 'YYYY-MM-DDTHH:mm:ssZ';
 
-  if (!timestamp) res.send(setError(HttpStatusCode.Unauthorized, AUTH_BAD_00));
+  if (!timestamp)
+    res
+      .status(HttpStatusCode.Unauthorized)
+      .send(setError(HttpStatusCode.Unauthorized, AUTH_BAD_00));
   else {
     const valid = dayjs(timestamp as string, format, true).isValid();
     const notExpired = dayjs(timestamp as string).isAfter(
@@ -49,9 +52,15 @@ export const verifyApiKey = async (
   const apikey = headers.apikey;
   const API_KEY = process.env.API_KEY;
 
-  if (!apikey) res.send(setError(HttpStatusCode.Unauthorized, AUTH_BAD_00));
+  if (!apikey)
+    res
+      .status(HttpStatusCode.Unauthorized)
+      .send(setError(HttpStatusCode.Unauthorized, AUTH_BAD_00));
   else {
     if (apikey === API_KEY) next();
-    else res.send(setError(HttpStatusCode.Unauthorized, AUTH_BAD_00));
+    else
+      res
+        .status(HttpStatusCode.Unauthorized)
+        .send(setError(HttpStatusCode.Unauthorized, AUTH_BAD_00));
   }
 };

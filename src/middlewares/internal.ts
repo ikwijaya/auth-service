@@ -20,14 +20,18 @@ export const verifyInternalToken = async (
   const token = authorization?.split(' ')[1];
 
   if (!token)
-    res.send(setError(HttpStatusCode.Unauthorized, TOKEN_FAIL_01, true));
+    res
+      .status(HttpStatusCode.Unauthorized)
+      .send(setError(HttpStatusCode.Unauthorized, TOKEN_FAIL_01, true));
   else {
     Jwt.verify(
       token,
       process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
       function (err) {
         if (err)
-          res.send(setError(HttpStatusCode.Unauthorized, err.message, true));
+          res
+            .status(HttpStatusCode.Unauthorized)
+            .send(setError(HttpStatusCode.Unauthorized, err.message, true));
         else {
           req.jwtToken = token;
           next();

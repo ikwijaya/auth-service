@@ -21,21 +21,26 @@ export const verifyMinimal = async (
   const authorization = headers.authorization;
   const token = authorization?.split(' ')[1];
 
-  if (!token) res.send(setError(HttpStatusCode.Unauthorized, TOKEN_FAIL_01));
+  if (!token)
+    res
+      .status(HttpStatusCode.Unauthorized)
+      .send(setError(HttpStatusCode.Unauthorized, TOKEN_FAIL_01));
   else {
     Jwt.verify(
       token,
       process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
       async function (err, verify: IJwtVerify) {
         if (err)
-          res.send(
-            setError(
-              HttpStatusCode.Unauthorized,
-              AUTH_FAIL_00,
-              false,
-              err.message
-            )
-          );
+          res
+            .status(HttpStatusCode.Unauthorized)
+            .send(
+              setError(
+                HttpStatusCode.Unauthorized,
+                AUTH_FAIL_00,
+                false,
+                err.message
+              )
+            );
         else {
           const ipAddress: string | undefined =
             (req.headers['x-forwarded-for'] as string | undefined) ??
@@ -88,21 +93,25 @@ export const verifyAccount = async (
   const formId = headers.formid as string | undefined;
 
   if (!token)
-    res.send(setError(HttpStatusCode.Unauthorized, AUTH_FAIL_00, false));
+    res
+      .status(HttpStatusCode.Unauthorized)
+      .send(setError(HttpStatusCode.Unauthorized, AUTH_FAIL_00, false));
   else {
     Jwt.verify(
       token,
       process.env.JWT_SECRET ?? new Date().toLocaleDateString(),
       async function (err, verify: IJwtVerify) {
         if (err)
-          res.send(
-            setError(
-              HttpStatusCode.Unauthorized,
-              AUTH_FAIL_00,
-              false,
-              err.message
-            )
-          );
+          res
+            .status(HttpStatusCode.Unauthorized)
+            .send(
+              setError(
+                HttpStatusCode.Unauthorized,
+                AUTH_FAIL_00,
+                false,
+                err.message
+              )
+            );
         else {
           if (verify?.id) {
             const userId = verify.id;
@@ -118,12 +127,16 @@ export const verifyAccount = async (
              * add mechanism, session is destroyed
              */
             if (relogin)
-              res.send(setError(HttpStatusCode.Unauthorized, AUTH_FAIL_00));
+              res
+                .status(HttpStatusCode.Unauthorized)
+                .send(setError(HttpStatusCode.Unauthorized, AUTH_FAIL_00));
             else {
               if (!payload)
-                res.send(
-                  setError(HttpStatusCode.Unauthorized, TOKEN_FAIL_01, true)
-                );
+                res
+                  .status(HttpStatusCode.Unauthorized)
+                  .send(
+                    setError(HttpStatusCode.Unauthorized, TOKEN_FAIL_01, true)
+                  );
               else {
                 const ipAddress: string | undefined =
                   (req.headers['x-forwarded-for'] as string | undefined) ??
@@ -141,7 +154,10 @@ export const verifyAccount = async (
                 next();
               }
             }
-          } else res.send(setError(HttpStatusCode.Unauthorized, TOKEN_FAIL_02));
+          } else
+            res
+              .status(HttpStatusCode.Unauthorized)
+              .send(setError(HttpStatusCode.Unauthorized, TOKEN_FAIL_02));
         }
       }
     );
