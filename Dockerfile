@@ -16,7 +16,6 @@ COPY . ${APP_DIR}
 
 # PREPARE INSTALL AND BUILDING
 RUN rm -rf .git
-RUN npm install
 RUN node -v
 RUN npm run clean:build
 RUN npm run build

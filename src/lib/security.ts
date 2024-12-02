@@ -135,7 +135,7 @@ export function rateLimit(options: IRateLimit) {
   if (process.env.REDIS_HOST)
     return exRateLimit({
       skip: (req, res) =>
-        options.skip ? options.skip.includes(req.ip) : false,
+        options.skip && req.ip ? options.skip.includes(req.ip) : false,
       windowMs: options.windowMs,
       limit: options.limit,
       standardHeaders: true,
@@ -153,7 +153,7 @@ export function rateLimit(options: IRateLimit) {
   else
     return exRateLimit({
       skip: (req, res) =>
-        options.skip ? options.skip.includes(req.ip) : false,
+        options.skip && req.ip ? options.skip.includes(req.ip) : false,
       windowMs: options.windowMs,
       limit: options.limit,
       standardHeaders: true,
