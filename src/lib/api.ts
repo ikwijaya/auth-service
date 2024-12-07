@@ -105,10 +105,7 @@ abstract class Api {
       if (value.jobId === jobId) {
         if (_value && isAPIError(_value))
           res.status(_value.statusCode).send(value.returnvalue);
-        else
-          return res
-            .json(value.returnvalue)
-            .status(statusCode ?? HttpStatusCode.Ok);
+        else return res.json(value.returnvalue).status(HttpStatusCode.Ok);
       }
     });
   }

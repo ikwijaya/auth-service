@@ -1,7 +1,12 @@
 import { type HttpStatusCode } from 'axios';
 
 export function isAPIError(obj: any): obj is IApiError {
-  return true;
+  return (
+    obj &&
+    typeof obj === 'object' &&
+    typeof obj.statusCode === 'number' &&
+    typeof obj.message === 'string' // Assuming the Error interface has a message property
+  );
 }
 export interface IApiError extends Error {
   statusCode: number;
