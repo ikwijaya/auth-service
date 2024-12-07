@@ -1,80 +1,116 @@
 [
   {
     "id": 1,
-    "label": "Dashboard",
-    "path": "/main/dashboard",
+    "label": "Pencarian",
+    "path": "/genai",
     "sort": 1,
     "isReadOnly": true,
-    "icon": "flaticon-home"
+    "icon": "search"
   },
   {
     "id": 2,
-    "label": "Security Manager",
+    "label": "Pengelolaan Pengguna",
     "path": null,
     "sort": 2,
     "isReadOnly": true,
-    "icon": "flaticon-user-3"
+    "icon": "manage_account"
   },
   {
     "id": 3,
-    "label": "My Groups",
-    "path": "/main/group/list",
+    "label": "Group",
+    "path": "/group",
     "sort": 1,
     "isReadOnly": false,
-    "parentId": 2,
-    "icon": "flaticon-user-3"
+    "icon": null,
+    "parentId": 2
   },
   {
     "id": 4,
-    "label": "User Manager",
-    "path": null,
-    "sort": 3,
-    "isReadOnly": true,
-    "icon": "flaticon-user-3"
+    "label": "User",
+    "path": "/user",
+    "sort": 2,
+    "isReadOnly": false,
+    "icon": null,
+    "parentId": 2
   },
   {
     "id": 5,
-    "label": "My Users",
-    "path": "/main/user/list",
-    "sort": 1,
+    "label": "Persetujuan",
+    "path": "/co-user",
+    "sort": 3,
     "isReadOnly": false,
-    "parentId": 4,
-    "icon": "flaticon-user-3"
-  },
-  {
-    "id": 6,
-    "label": "My Approvals",
-    "path": "/main/user/approval",
-    "sort": 2,
-    "isReadOnly": false,
-    "parentId": 4,
-    "icon": "flaticon-user-3"
+    "icon": null,
+    "parentId": 2
   },
 
   {
-    "id": 7,
-    "label": "Document Manager",
+    "id": 6,
+    "label": "Pengelolaan Informasi",
     "path": null,
-    "sort": 4,
+    "sort": 3,
     "isReadOnly": true,
-    "icon": "flaticon-user-3"
+    "icon": "folder"
+  },
+  {
+    "id": 7,
+    "label": "Informasi",
+    "path": "/folder-man",
+    "sort": 1,
+    "isReadOnly": true,
+    "icon": null,
+    "parentId": 6
   },
   {
     "id": 8,
-    "label": "My Documents",
-    "path": "/main/document/list",
-    "sort": 1,
-    "isReadOnly": false,
-    "parentId": 7,
-    "icon": "flaticon-user-3"
+    "label": "Persetujuan",
+    "path": "/co-folder-man",
+    "sort": 2,
+    "isReadOnly": true,
+    "icon": null,
+    "parentId": 6
   },
+
   {
     "id": 9,
-    "label": "My Approvals",
-    "path": "/main/document/approval",
+    "label": "Laporan",
+    "path": "/log",
+    "sort": 4,
+    "isReadOnly": true,
+    "icon": "article"
+  },
+  {
+    "id": 10,
+    "label": "Config Params",
+    "path": "/config-params",
+    "sort": 5,
+    "isReadOnly": false,
+    "icon": "settings"
+  },
+
+  {
+    "id": 11,
+    "label": "Group Sharing",
+    "path": null,
+    "sort": 6,
+    "isReadOnly": true,
+    "icon": "folder_shared"
+  },
+  {
+    "id": 12,
+    "label": "Akses",
+    "path": "/file-sharing",
+    "sort": 1,
+    "isReadOnly": false,
+    "icon": null,
+    "parentId": 11
+  },
+  {
+    "id": 13,
+    "label": "Persetujuan",
+    "path": "/co-file-sharing",
     "sort": 2,
     "isReadOnly": false,
-    "parentId": 7,
-    "icon": "flaticon-user-3"
+    "icon": null,
+    "parentId": 11
   }
 ]
