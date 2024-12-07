@@ -1,4 +1,4 @@
-import { str, num } from 'envalid';
+import { str, num, json } from 'envalid';
 import appConfig from './app.config';
 import { Environments } from '@/enums/environment.enum';
 
@@ -38,6 +38,8 @@ const envValidationConfig = {
   Q_FILE_SERVICE: str(),
   Q_MARKETPLACE: str(),
   Q_KNOWLEDGE: str(),
+
+  API_GATEWAY: json({ desc: 'defined for proxy gateway' }),
 };
 
 export default envValidationConfig;

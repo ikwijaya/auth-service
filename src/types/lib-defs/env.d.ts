@@ -41,6 +41,8 @@ declare global {
       Q_FILE_SERVICE: string;
       Q_MARKETPLACE: string;
       Q_KNOWLEDGE: string;
+
+      API_GATEWAY: string;
     }
   }
 }

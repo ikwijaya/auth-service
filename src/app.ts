@@ -71,7 +71,7 @@ class App {
     } = appConfig;
     this.express.use('/', home);
     this.express.use('/metrics', metrics);
-    this.express.use(`/${version}` as string & { _kind?: 'MyString' }, routes);
+    this.express.use('/' + version, routes);
   }
 
   private setErrorHandler(): void {

@@ -1,0 +1,6 @@
+analyze:
+  location: local
+commit:
+  connect:
+    stream: platform-auth-service
+    url: http://10.23.20.203:8081

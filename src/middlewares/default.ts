@@ -1,8 +1,10 @@
 import { type NextFunction, type Request, type Response } from 'express';
 import { HttpStatusCode } from 'axios';
 import dayjs from 'dayjs';
+import Jwt from 'jsonwebtoken';
 import { AUTH_BAD_00, AUTH_BAD_01 } from '@/utils/constants';
 import { setError } from '@/lib/errors';
+import { type IJwtCommunicator } from '@/dto/common.dto';
 
 /**
  *
@@ -63,4 +65,33 @@ export const verifyApiKey = async (
         .status(HttpStatusCode.Unauthorized)
         .send(setError(HttpStatusCode.Unauthorized, AUTH_BAD_00));
   }
+};
+
+/**
+ *
+ * @param req
+ * @param res
+ * @param next
+ */
+export const createJwtForGateway = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const jwtVerify = req.jwtVerify;
+  delete jwtVerify.iat;
+  delete jwtVerify.exp;
+
+  const jwtCommunicator: IJwtCommunicator = {
+    userMatrix: req.userMatrix,
+    ...jwtVerify,
+  };
+
+  const value = Jwt.sign(jwtCommunicator, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRE,
+  });
+
+  req.headers = {
+    authorization: 'Bearer ' + value,
+  };
 };

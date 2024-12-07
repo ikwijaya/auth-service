@@ -10,6 +10,7 @@ import Log from './log/log.route';
 import User from './user/user.route';
 import UserGroup from './user-group/user-group.route';
 import Confuse from './confuse';
+import ApiGateway from './api-gateway';
 
 const router: Router = Router();
 router.use(Auth);
@@ -23,5 +24,6 @@ router.use(Log);
 router.use(User);
 router.use(UserGroup);
 router.use(Confuse);
+router.use(ApiGateway);
 
 export default router;
