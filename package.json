@@ -6,8 +6,8 @@
   "scripts": {
     "prepare": "is-ci || husky install",
     "prebuild": "npm run clean:build",
-    "build": "npm run prisma:generate && tsc --build --verbose tsconfig.build.json && tsc-alias -p tsconfig.json && npm run check:size",
-    "start": "npm run env:copy && npm run prisma:deploy && node ./dist/index.js",
+    "build": "tsc --build --verbose tsconfig.build.json && tsc-alias -p tsconfig.json && npm run check:size",
+    "start": "npm run env:copy && npm run prisma:generate && npm run prisma:deploy && node ./dist/index.js",
     "dev": "npm run prisma:generate && ts-node-dev --project tsconfig.dev.json -r tsconfig-paths/register --transpile-only --respawn --exit-child src/index.ts",
     "prod": "npm run build && npm run start",
     "clean": "rm -rf node_modules coverage dist .nyc_output",

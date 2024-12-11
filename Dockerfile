@@ -43,6 +43,7 @@ WORKDIR /app
 COPY --from=stage /app/dist /app/dist
 COPY --from=stage /app/node_modules /app/node_modules
 COPY --from=stage /app/public /app/public
+COPY --from=stage /app/prisma /app/prisma
 COPY --from=stage /app/package.json /app/package.json
 COPY --from=stage /app/package-lock.json /app/package-lock.json
 
