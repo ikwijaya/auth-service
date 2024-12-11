@@ -7,6 +7,7 @@ const redisConnection: IORedis = new IORedis({
   host: process.env.REDIS_HOST,
   port: parseInt(process.env.REDIS_PORT),
   maxRetriesPerRequest: null,
+  password: process.env.REDIS_PASSWORD,
 });
 
 redisConnection.on('error', (err: Error) =>

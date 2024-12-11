@@ -24,6 +24,7 @@ declare global {
       GOOGLE_PROJECT_ID: string;
       GOOGLE_LOG_BUCKET: string;
 
+      OPTIMIZE_API_KEY: string;
       DATABASE_URL: string;
       NUM_PROXY: string;
 
