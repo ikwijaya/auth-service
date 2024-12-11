@@ -1,5 +1,5 @@
 import { Queue } from 'bullmq';
-import { sqlFindUserGroup } from '@prisma/client/sql';
+import { Prisma } from '@prisma/client';
 import logger from './logger';
 import redisConnection from './ioredis';
 import prisma from '@/lib/prisma';
@@ -19,6 +19,27 @@ abstract class Service {
    */
   public notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
     return value !== null && value !== undefined;
+  }
+
+  /**
+   *
+   * @param typeId
+   * @returns
+   */
+  private async sqlFindUserGroup(typeId: number[] = []) {
+    return await prisma.$queryRaw<Array<{ id: number }>>`
+      -- param {INT} $1:typeId(s)
+      SELECT  a."id"
+      FROM    "UserGroup" as a
+      INNER JOIN (
+        SELECT  MAX(b."checkedAt") as "maxdate", b."userId", b."groupId"
+        FROM    "UserGroup" as b
+        WHERE   b."actionCode" = 'APPROVED' AND b."recordStatus" = 'A'
+        GROUP BY b."userId", b."groupId"
+      ) as ib ON a."userId" = ib."userId" AND a."groupId" = ib."groupId" AND a."checkedAt" = ib."maxdate"
+      WHERE   a."recordStatus" = 'A' AND a."actionCode" = 'APPROVED'
+              AND a."typeId" IN (${Prisma.join(typeId)});
+    `;
   }
 
   /**
@@ -43,9 +64,8 @@ abstract class Service {
      * and this user has waiting for new group after
      */
     const typeIds = type.map((e) => e.typeId);
-    const findUserGroup: Array<{ id: number }> = await prisma.$queryRawTyped(
-      sqlFindUserGroup(typeIds.map((e) => e))
-    );
+    const findUserGroup: Array<{ id: number }> =
+      await this.sqlFindUserGroup(typeIds);
 
     const userGroup = await prisma.userGroup
       .findMany({
@@ -103,9 +123,8 @@ abstract class Service {
      * thats means this user has assign to some group before
      * and this user has waiting for new group after
      */
-    const findUserGroup: Array<{ id: number }> = await prisma.$queryRawTyped(
-      sqlFindUserGroup(typeIds)
-    );
+    const findUserGroup: Array<{ id: number }> =
+      await this.sqlFindUserGroup(typeIds);
 
     const userGroup = await prisma.userGroup
       .findMany({
