@@ -22,7 +22,6 @@ const envValidationConfig = {
   GOOGLE_PROJECT_ID: str(),
   GOOGLE_LOG_BUCKET: str(),
 
-  OPTIMIZE_API_KEY: str(),
   DATABASE_URL: str(),
   NUM_PROXY: num(),
 

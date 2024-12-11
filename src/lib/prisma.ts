@@ -1,5 +1,4 @@
 import { type Prisma, PrismaClient } from '@prisma/client';
-import { withOptimize } from '@prisma/extension-optimize';
 import logger from './logger';
 
 const prisma = new PrismaClient({
@@ -28,7 +27,6 @@ const prisma = new PrismaClient({
   ],
 });
 
-prisma.$extends(withOptimize({ apiKey: process.env.OPTIMIZE_API_KEY }));
 prisma.$on(`query`, async (e) => {
   loopQueryEvent(e);
 });
