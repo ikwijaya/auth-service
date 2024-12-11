@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { config as configDotenv } from 'dotenv';
+import dotenv, { config as configDotenv } from 'dotenv';
 import { cleanEnv } from 'envalid';
 import { EnvironmentFile, Environments } from '@/enums/environment.enum';
 import envValidationConfig from '@/config/env-validation.config';
@@ -8,6 +8,7 @@ import { envFileNotFoundError } from '@/utils/helper';
 import { type CommonEnvKeys } from '@/types/environment.type';
 import appConfig from '@/config/app.config';
 
+dotenv.config();
 export interface IEnvironment {
   getCurrentEnvironment: () => string;
   setEnvironment: (env?: Environments) => void;
@@ -25,7 +26,7 @@ class Environment implements IEnvironment {
   constructor() {
     const port = process.env.PORT ?? 8080;
     this.port = parseInt(port) ?? appConfig.defaultPort;
-    this.setEnvironment(process.env.NODE_ENV ?? Environments.DEV);
+    this.setEnvironment(process.env.NODE_ENV ?? Environments.TEST);
   }
 
   get env() {
@@ -60,11 +61,7 @@ class Environment implements IEnvironment {
   private resolveEnvPath(key: CommonEnvKeys): string {
     // On priority bar, .env.[NODE_ENV] has higher priority than default env file (.env)
     // If both are not resolved, error is thrown.
-    const rootDir: string =
-      this._env === Environments.TEST
-        ? path.resolve(__dirname, '../../')
-        : appConfig.envFile;
-
+    const rootDir: string = path.resolve(__dirname, '../../');
     const envPath = path.resolve(rootDir, EnvironmentFile[key]);
     const defaultEnvPath = path.resolve(rootDir, EnvironmentFile.DEFAULT);
     if (!fs.existsSync(envPath) && !fs.existsSync(defaultEnvPath)) {
@@ -120,4 +117,6 @@ class Environment implements IEnvironment {
 }
 
 export { Environment };
+
+// static value for env when use k8s-path
 export default new Environment();
