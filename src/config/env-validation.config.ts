@@ -31,7 +31,6 @@ const envValidationConfig = {
   REDIS_PASSWORD: str(),
   REDIS_SID_TTL: str(),
 
-  API_LOG_URL: str(),
   Q_LOG: str(),
   Q_NOTIF: str(),
   Q_SCHEDULER: str(),

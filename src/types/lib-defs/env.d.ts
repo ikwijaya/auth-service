@@ -33,8 +33,6 @@ declare global {
       REDIS_PASSWORD: string;
       REDIS_SID_TTL: string;
 
-      API_LOG_URL: string;
-
       Q_LOG: string;
       Q_NOTIF: string;
       Q_SCHEDULER: string;
