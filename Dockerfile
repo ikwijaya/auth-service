@@ -9,6 +9,7 @@ RUN apk add --update nodejs npm bash jq && \
 
 # SET WORK DIRECTORY
 RUN mkdir -p /build
+RUN mkdir -p /app
 WORKDIR /build
 COPY . /build
 
@@ -31,7 +32,6 @@ FROM alpine:latest
 # INSTALL NODEJS and NPM
 RUN apk --no-cache add curl busybox
 RUN apk add --update nodejs npm
-RUN mkdir -p /app
 
 # CREATE USER NON ROOT
 RUN adduser -D -u 1001 default
@@ -45,8 +45,7 @@ COPY --from=stage /build/package.json /app/package.json
 COPY --from=stage /build/package-lock.json /app/package-lock.json
 
 RUN chmod +x /app
-RUN du -sh *
-RUN rm -Rf /build
+RUN ls -alh && du -sh *
 
 # EXPOSE FOR ACCESS FROM ANY
 EXPOSE 8080
