@@ -1,9 +1,5 @@
 FROM alpine:latest as stage
 
-# SET ENV
-ENV BUILD_DIR="/build"
-ENV APP_DIR="/app"
-
 # ARG
 ARG NODE_OPTIONS=--openssl-legacy-provider
 
@@ -12,12 +8,12 @@ RUN apk add --update nodejs npm bash jq && \
     npm install -g depcheck  # Install depcheck globally
 
 # SET WORK DIRECTORY
-RUN mkdir -p ${BUILD_DIR}
-WORKDIR ${BUILD_DIR}
-COPY . ${BUILD_DIR}
+RUN mkdir -p /build
+WORKDIR /build
+COPY . /build
 
 # Debug
-RUN ls -l ${BUILD_DIR}
+RUN ls -l /build
 
 # PREPARE INSTALL AND BUILDING
 RUN rm -rf .git
@@ -25,8 +21,8 @@ RUN node -v
 RUN npm run clean:build
 
 # Ensure the script is executable
-RUN chmod +x ${BUILD_DIR}/uninstall.sh
-RUN ${BUILD_DIR}/uninstall.sh
+RUN chmod +x /build/uninstall.sh
+RUN /build/uninstall.sh
 RUN npm run build
 
 # PRODUCTION
@@ -35,22 +31,22 @@ FROM alpine:latest
 # INSTALL NODEJS and NPM
 RUN apk --no-cache add curl busybox
 RUN apk add --update nodejs npm
+RUN mkdir -p /app
 
 # CREATE USER NON ROOT
 RUN adduser -D -u 1001 default
 USER 1001
 
-RUN mkdir -p ${APP_DIR}
-WORKDIR ${APP_DIR}
-COPY --from=stage ${APP_DIR}/dist ${APP_DIR}/dist
-COPY --from=stage ${APP_DIR}/node_modules ${APP_DIR}/node_modules
-COPY --from=stage ${APP_DIR}/public ${APP_DIR}/public
-COPY --from=stage ${APP_DIR}/package.json ${APP_DIR}/package.json
-COPY --from=stage ${APP_DIR}/package-lock.json ${APP_DIR}/package-lock.json
+WORKDIR /app
+COPY --from=stage /build/dist /app/dist
+COPY --from=stage /build/node_modules /app/node_modules
+COPY --from=stage /build/public /app/public
+COPY --from=stage /build/package.json /app/package.json
+COPY --from=stage /build/package-lock.json /app/package-lock.json
 
-RUN chmod +x ${APP_DIR}
+RUN chmod +x /app
 RUN du -sh *
-RUN rm -Rf ${BUILD_DIR}
+RUN rm -Rf /build
 
 # EXPOSE FOR ACCESS FROM ANY
 EXPOSE 8080
