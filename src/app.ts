@@ -133,7 +133,16 @@ class App {
           serverAdapter: adapter,
           options: {
             uiConfig: {
-              boardTitle: 'Monitoring',
+              boardTitle: '',
+              boardLogo: {
+                path: process.env.API_BASE_URL + '/cn-logo.svg',
+                width: 35,
+                height: 35,
+              },
+              favIcon: {
+                default: process.env.API_BASE_URL + '/favicon.ico',
+                alternative: process.env.API_BASE_URL + '/favicon.png',
+              },
             },
           },
         });
