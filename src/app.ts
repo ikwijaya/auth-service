@@ -94,7 +94,7 @@ class App {
     this.express.use('/monitoring/login', async (req, res) => {
       await this.ioredis.del('_mon_');
       res.render('login', {
-        baseUrl: req.url,
+        baseUrl: req.protocol + '://' + process.env.APP_BASE_URL,
       });
     });
 
