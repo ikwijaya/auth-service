@@ -65,7 +65,10 @@ docs/
 grafana*.json
 
 # coverity == secure code review
-idir
+idir/
 
 # gateway
 gateway/
+
+# certificate
+certificate/

@@ -90,6 +90,12 @@ class App {
     const adapter = new ExpressAdapter();
     const createQueue = (name: string) =>
       new Queue(name, { connection: this.ioredis });
+
+    this.express.use((req, res, next) => {
+      res.locals.baseUrl = req.baseUrl;
+      next();
+    });
+
     this.express.use('/monitoring/login', async (req, res) => {
       await this.ioredis.del('_mon_');
       res.render('login');
