@@ -20,7 +20,7 @@ export default class LogController extends Api {
       const value = await bullService.get(req.body).catch((e) => {
         throw e;
       });
-      if (value) res.redirect('/monitoring');
+      if (value) res.redirect(process.env.APP_BASE_URL + '/monitoring');
       else res.redirect('/not-found');
     } catch (error) {
       res.redirect('/not-found');

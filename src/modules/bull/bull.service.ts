@@ -47,8 +47,6 @@ export class BullService {
         throw e;
       });
 
-    console.log(user);
-
     if (!user)
       throw setError(
         HttpStatusCode.InternalServerError,
