@@ -7,7 +7,7 @@
     "prepare": "is-ci || husky install",
     "prebuild": "npm run clean:build",
     "build": "npm run prisma:generate && tsc --build --verbose tsconfig.build.json && tsc-alias -p tsconfig.json && npm run check:size",
-    "start": "npm run cert:copy && npm run env:copy && npm run prisma:deploy && node ./dist/index.js",
+    "start": "npm run redis:copy && npm run env:copy && npm run prisma:deploy && node ./dist/index.js",
     "dev": "npm run prisma:generate && ts-node-dev --project tsconfig.dev.json -r tsconfig-paths/register --transpile-only --respawn --exit-child src/index.ts",
     "prod": "npm run build && npm run start",
     "clean": "rm -rf node_modules coverage dist .nyc_output",
@@ -25,7 +25,7 @@
     "test": "jest",
     "test:integration": "jest -c jest.config.integration.ts",
     "env:copy": "cp /deployments/config/application.env .env",
-    "cert:copy": "mkdir -p certificate && cp /deployments/config/redis.pem ./certificate/redis.pem",
+    "redis:copy": "cp /deployments/config/redis.pem redis.pem",
     "check:size": "du -sh ./dist && du -sh ./node_modules"
   },
   "prisma": {
