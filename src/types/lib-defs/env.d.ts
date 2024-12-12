@@ -32,6 +32,7 @@ declare global {
       REDIS_USERNAME: string;
       REDIS_PASSWORD: string;
       REDIS_SID_TTL: string;
+      REDIS_CERT: string;
 
       Q_LOG: string;
       Q_NOTIF: string;
