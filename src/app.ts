@@ -132,7 +132,7 @@ class App {
           },
         });
         if (value) next();
-        else res.redirect('/monitoring/login');
+        else res.redirect(process.env.APP_BASE_URL + '/monitoring/login');
       },
       adapter.getRouter()
     );
