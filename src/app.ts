@@ -125,7 +125,8 @@ class App {
         const appBaseUrl = process.env.APP_BASE_URL;
 
         if (appBaseUrl)
-          basePath = basePath + '/' + appBaseUrl.split('/').slice(3).join('/');
+          basePath =
+            '/' + appBaseUrl.split('/').slice(3).join('/') + '/' + basePath;
 
         adapter.setBasePath(basePath);
         createBullBoard({
