@@ -121,7 +121,13 @@ class App {
               })
           );
 
-        adapter.setBasePath('/monitoring');
+        let basePath = '/monitoring';
+        const appBaseUrl = process.env.APP_BASE_URL;
+
+        if (appBaseUrl)
+          basePath = basePath + appBaseUrl.split('/').slice(3).join('/');
+
+        adapter.setBasePath(basePath);
         createBullBoard({
           queues: Q,
           serverAdapter: adapter,
