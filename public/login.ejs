@@ -73,7 +73,11 @@
 
 <div class="login-page">
     <div class="form">
-        <form class="login-form" method="post" action="{{baseUrl}}/v1/bull/login">
+        <form class="login-form" method="post" action="<%= baseUrl %>/v1/bull/login">
+            <div>
+              <h3>Queue Dashboard</h3>
+              <label style="font-style: italic; font-size: 8px;"><%= baseUrl %></label>
+            </div>
             <input type="text" name="username" placeholder="Username"/>
             <input type="password" name="password" placeholder="Password"/>
             <button>Login</button>

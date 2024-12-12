@@ -91,14 +91,11 @@ class App {
     const createQueue = (name: string) =>
       new Queue(name, { connection: this.ioredis });
 
-    this.express.use((req, res, next) => {
-      res.locals.baseUrl = req.baseUrl;
-      next();
-    });
-
     this.express.use('/monitoring/login', async (req, res) => {
       await this.ioredis.del('_mon_');
-      res.render('login');
+      res.render('login', {
+        baseUrl: req.url,
+      });
     });
 
     this.express.use('/not-found', async (req, res) => {
