@@ -1,6 +1,7 @@
-import IORedis from 'ioredis';
+import type IORedis from 'ioredis';
 import prisma from './prisma';
 import logger from './logger';
+import redisConnection from './ioredis';
 import { type IJwtVerify, type IUserAccount } from '@/dto/common.dto';
 import { convertToSeconds } from '@/utils/helper';
 
@@ -16,10 +17,7 @@ export class AuthValidate {
 
   private connection: IORedis;
   private connect() {
-    this.connection = new IORedis({
-      host: process.env.REDIS_HOST,
-      port: parseInt(process.env.REDIS_PORT),
-    });
+    this.connection = redisConnection;
   }
 
   /**
