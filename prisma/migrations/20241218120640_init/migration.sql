@@ -162,8 +162,8 @@ CREATE TABLE "Role" (
 -- CreateTable
 CREATE TABLE "Form" (
     "id" SERIAL NOT NULL,
-    "name" TEXT NOT NULL,
-    "url" TEXT,
+    "label" TEXT NOT NULL,
+    "path" TEXT,
     "icon" TEXT DEFAULT 'mdi-snow',
     "color" TEXT DEFAULT 'white',
     "sort" INTEGER NOT NULL DEFAULT 0,
@@ -210,12 +210,24 @@ CREATE TABLE "Session" (
 );
 
 -- CreateTable
+CREATE TABLE "LoginHistory" (
+    "id" SERIAL NOT NULL,
+    "username" TEXT NOT NULL,
+    "status" BOOLEAN NOT NULL,
+    "ipAddress" TEXT,
+    "device" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "LoginHistory_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Options" (
     "id" SERIAL NOT NULL,
     "flag" TEXT NOT NULL,
     "key" TEXT NOT NULL,
     "value" TEXT NOT NULL,
-    "changelog" TEXT NOT NULL,
+    "changelog" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "recordStatus" TEXT NOT NULL DEFAULT 'A',
 
