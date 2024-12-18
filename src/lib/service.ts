@@ -171,17 +171,21 @@ abstract class Service {
     queue.on('error', (err) =>
       logger.warn(`${Service.name} addLog: ${err.message}`)
     );
+
+    await queue.close();
   }
 
   /**
    *
-   * @param data
+   * @param obj
    */
-  public async addNotif(data: IAddQueue[]) {
+  public async addNotif(obj: IAddQueue) {
     if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`);
+    if (!obj.payload.createdUsername)
+      return logger.error(`cannot send notif without username`);
 
     const now = Date.now();
-    const queue = new Queue('AppNotif', {
+    const queue = new Queue('notif_for_' + obj.payload.createdUsername, {
       connection: redisConnection,
       defaultJobOptions: {
         removeOnComplete: true,
@@ -193,12 +197,15 @@ abstract class Service {
         },
       },
     });
-    data.forEach(
-      async (e) => await queue.add(`not-${e.flag}-${now}`, e.payload)
-    );
+
+    await queue.add(`not-${obj.flag}-${now}`, obj.payload);
     queue.on('error', (err) =>
-      logger.warn(`${Service.name} addNotif: ${err.message}`)
+      logger.warn(
+        `${Service.name} notif_for_${obj.payload.createdUsername ?? ''}: ${err.message}`
+      )
     );
+
+    await queue.close();
   }
 
   /**

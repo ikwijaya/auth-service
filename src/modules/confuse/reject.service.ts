@@ -71,7 +71,7 @@ export default class RejectUserGroupService extends Service {
         where: { id: obj.id },
       });
 
-      this.notif(auth, items);
+      await this.notif(auth, items);
     });
 
     const logs: IAddQueue[] = [];
@@ -101,27 +101,27 @@ export default class RejectUserGroupService extends Service {
    * @param auth
    * @param requests
    */
-  private notif(auth: IUserAccount, requests: UserItem[] = []) {
-    const values: IAddQueue[] = [];
-    requests.forEach((e) => {
-      values.push({
-        flag: RejectUserGroupService.name,
-        payload: {
-          serviceName: auth.logAction,
-          action: 'approve',
-          message:
-            (auth.fullname ?? auth.username) +
-            ' telah menolak permintaan user ' +
-            (e.user.fullname ?? e.user.username),
-          createdAt: new Date(),
-          createdBy: auth.userId,
-          createdUsername: auth.username,
-          json: {},
-          forUserId: e.makedUser.id,
-        } satisfies INotifQMes,
-      });
-    });
+  private async notif(auth: IUserAccount, requests: UserItem[] = []) {
+    const maps = requests.map(
+      async (e) =>
+        await this.addNotif({
+          flag: RejectUserGroupService.name,
+          payload: {
+            serviceName: auth.logAction,
+            action: 'approve',
+            message:
+              (auth.fullname ?? auth.username) +
+              ' telah menolak permintaan user ' +
+              (e.user.fullname ?? e.user.username),
+            createdAt: new Date(),
+            createdBy: auth.userId,
+            createdUsername: auth.username,
+            json: {},
+            forUserId: e.makedUser.id,
+          } satisfies INotifQMes,
+        })
+    );
 
-    void this.addNotif(values);
+    await Promise.all(maps);
   }
 }
