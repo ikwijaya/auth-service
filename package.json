@@ -7,7 +7,7 @@
     "prepare": "is-ci || husky install",
     "prebuild": "npm run clean:build",
     "build": "npm run prisma:generate && tsc --build --verbose tsconfig.build.json && tsc-alias -p tsconfig.json && npm run check:size",
-    "start": "npm run redis:copy && npm run env:copy && npm run prisma:deploy && ls -alh && node ./dist/index.js",
+    "start": "npm run redis:copy && npm run env:copy && npm run prisma:deploy && npm run folder:rm && ls -alh && node ./dist/index.js",
     "dev": "npm run prisma:generate && ts-node-dev --project tsconfig.dev.json -r tsconfig-paths/register --transpile-only --respawn --exit-child src/index.ts",
     "prod": "npm run build && npm run start",
     "clean": "rm -rf node_modules coverage dist .nyc_output",
@@ -26,7 +26,8 @@
     "test:integration": "jest -c jest.config.integration.ts",
     "env:copy": "cp /deployments/config/application.env .env",
     "redis:copy": "cp /deployments/config/redis.pem redis.pem",
-    "check:size": "du -sh ./dist && du -sh ./node_modules"
+    "check:size": "du -sh ./dist && du -sh ./node_modules",
+    "folder:rm": "rm -rf src prisma scripts tests .git coverage .nyc_output certificate"
   },
   "prisma": {
     "seed": "ts-node-dev -r tsconfig-paths/register --transpile-only prisma/seed.ts"
