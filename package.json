@@ -27,7 +27,7 @@
     "env:copy": "cp /deployments/config/application.env .env",
     "redis:copy": "cp /deployments/config/redis.pem redis.pem",
     "check:size": "du -sh ./dist && du -sh ./node_modules",
-    "folder:rm": "rm -rf src prisma scripts tests .git coverage .nyc_output certificate"
+    "folder:rm": "sudo rm -rf src prisma scripts tests .git coverage .nyc_output certificate"
   },
   "prisma": {
     "seed": "ts-node-dev -r tsconfig-paths/register --transpile-only prisma/seed.ts"
