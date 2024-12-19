@@ -165,9 +165,12 @@ abstract class Service {
         },
       },
     });
-    data.forEach(
+
+    const maps = data.map(
       async (e) => await queue.add(`log-${e.flag}-${now}`, e.payload)
     );
+
+    await Promise.all(maps);
     queue.on('error', (err) =>
       logger.warn(`${Service.name} addLog: ${err.message}`)
     );
