@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import logger from './logger';
 import redisConnection from './ioredis';
 import prisma from '@/lib/prisma';
-import { type IAddQueue } from '@/dto/queue.dto';
+import { type INotifQMes, type IAddQueue } from '@/dto/queue.dto';
 import { type IUserAccount } from '@/dto/common.dto';
 import { ROLE_USER } from '@/enums/role.enum';
 
@@ -157,11 +157,11 @@ abstract class Service {
       connection: redisConnection,
       defaultJobOptions: {
         removeOnComplete: true,
-        removeOnFail: { count: 1000 },
-        attempts: 3,
+        removeOnFail: { count: 500 },
+        attempts: 5,
         backoff: {
-          type: 'exponential',
-          delay: 1000,
+          type: 'fixed',
+          delay: 2000,
         },
       },
     });
@@ -179,21 +179,21 @@ abstract class Service {
    *
    * @param obj
    */
-  public async addNotif(obj: IAddQueue) {
+  public async addNotif(obj: { flag: string; payload: INotifQMes }) {
     if (!process.env.REDIS_HOST) return logger.warn(`<no-redis-defined>`);
-    if (!obj.payload.createdUsername)
+    if (!obj.payload.forUserId)
       return logger.error(`cannot send notif without username`);
 
     const now = Date.now();
-    const queue = new Queue('notif_for_' + obj.payload.createdUsername, {
+    const queue = new Queue('notif_for_' + obj.payload.forUserId.toString(), {
       connection: redisConnection,
       defaultJobOptions: {
         removeOnComplete: true,
-        removeOnFail: { count: 1000 },
-        attempts: 3,
+        removeOnFail: { count: 100 },
+        attempts: 5,
         backoff: {
-          type: 'exponential',
-          delay: 1000,
+          type: 'fixed',
+          delay: 2000,
         },
       },
     });
@@ -201,7 +201,7 @@ abstract class Service {
     await queue.add(`not-${obj.flag}-${now}`, obj.payload);
     queue.on('error', (err) =>
       logger.warn(
-        `${Service.name} notif_for_${obj.payload.createdUsername ?? ''}: ${err.message}`
+        `${Service.name} notif_for_${obj.payload.forUserId ?? ''}: ${err.message}`
       )
     );
 
